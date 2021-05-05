@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <map>
 #include <set>
 #include <string>
@@ -28,7 +29,7 @@ int ReadLineWithNumber()
     return result;
 }
 
-vector<string> SplitIntoWords(const string &text)
+vector<string> SplitIntoWords(string_view text)
 {
     vector<string> words;
     string word;
@@ -67,7 +68,7 @@ enum class DocumentStatus
 class SearchServer
 {
 public:
-    void SetStopWords(const string &text)
+    void SetStopWords(string_view text)
     {
         for (const string &word : SplitIntoWords(text))
         {
@@ -75,7 +76,7 @@ public:
         }
     }
 
-    void AddDocument(int document_id, const string &document,
+    void AddDocument(int document_id, string_view document,
                      DocumentStatus status, const vector<int> &ratings)
     {
         const vector<string> words = SplitIntoWordsNoStop(document);
@@ -90,16 +91,16 @@ public:
                                status});
     }
 
-    template <class Pred>
+    template <class DocumentFilter>
     vector<Document> FindTopDocuments(
-        const string &raw_query, Pred pred) const
+        string_view raw_query, DocumentFilter document_filter) const
     {
         const Query query = ParseQuery(raw_query);
-        auto matched_documents = FindAllDocuments(query, pred);
+        auto matched_documents = FindAllDocuments(query, document_filter);
 
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document &lhs, const Document &rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6)
+                 if (abs(lhs.relevance - rhs.relevance) < EPSILON)
                  {
                      return lhs.rating > rhs.rating;
                  }
@@ -116,7 +117,7 @@ public:
     }
 
     vector<Document> FindTopDocuments(
-        const string &raw_query,
+        string_view raw_query,
         DocumentStatus status_filter = DocumentStatus::ACTUAL) const
     {
         return FindTopDocuments(raw_query,
@@ -132,7 +133,7 @@ public:
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(
-        const string &raw_query, int document_id) const
+        string_view raw_query, int document_id) const
     {
         const Query query = ParseQuery(raw_query);
         vector<string> matched_words;
@@ -173,12 +174,14 @@ private:
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
 
-    bool IsStopWord(const string &word) const
+    static constexpr double EPSILON = 1e-6;
+
+    bool IsStopWord(string_view word) const
     {
-        return stop_words_.count(word) > 0;
+        return count(stop_words_.begin(), stop_words_.end(), word) > 0;
     }
 
-    vector<string> SplitIntoWordsNoStop(const string &text) const
+    vector<string> SplitIntoWordsNoStop(string_view text) const
     {
         vector<string> words;
         for (const string &word : SplitIntoWords(text))
@@ -193,11 +196,7 @@ private:
 
     static int ComputeAverageRating(const vector<int> &ratings)
     {
-        int rating_sum = 0;
-        for (const int rating : ratings)
-        {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
         return rating_sum / static_cast<int>(ratings.size());
     }
 
@@ -208,7 +207,7 @@ private:
         bool is_stop;
     };
 
-    QueryWord ParseQueryWord(string text) const
+    QueryWord ParseQueryWord(string_view text) const
     {
         bool is_minus = false;
         // Word shouldn't be empty
@@ -218,7 +217,7 @@ private:
             text = text.substr(1);
         }
         return {
-            text,
+            string{text},
             is_minus,
             IsStopWord(text)};
     }
@@ -229,7 +228,7 @@ private:
         set<string> minus_words;
     };
 
-    Query ParseQuery(const string &text) const
+    Query ParseQuery(string_view text) const
     {
         Query query;
         for (const string &word : SplitIntoWords(text))
@@ -257,8 +256,8 @@ private:
                    word_to_document_freqs_.at(word).size());
     }
 
-    template <class Pred>
-    vector<Document> FindAllDocuments(const Query &query, Pred pred) const
+    template <class DocumentFilter>
+    vector<Document> FindAllDocuments(const Query &query, DocumentFilter filter_predicate) const
     {
         map<int, double> document_to_relevance;
         for (const string &word : query.plus_words)
@@ -272,7 +271,7 @@ private:
             {
                 auto document_status = documents_.at(document_id).status;
                 auto document_rating = documents_.at(document_id).rating;
-                if (pred(document_id, document_status, document_rating))
+                if (filter_predicate(document_id, document_status, document_rating))
                 {
                     document_to_relevance[document_id] += term_freq * inverse_document_freq;
                 }
