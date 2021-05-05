@@ -75,7 +75,8 @@ public:
         }
     }
 
-    void AddDocument(int document_id, const string &document, DocumentStatus status, const vector<int> &ratings)
+    void AddDocument(int document_id, const string &document,
+                     DocumentStatus status, const vector<int> &ratings)
     {
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
@@ -115,10 +116,14 @@ public:
     }
 
     vector<Document> FindTopDocuments(
-        const string &raw_query, DocumentStatus status_filter = DocumentStatus::ACTUAL) const
+        const string &raw_query,
+        DocumentStatus status_filter = DocumentStatus::ACTUAL) const
     {
         return FindTopDocuments(raw_query,
-                                [status_filter](int document_id, DocumentStatus status, int rating) { return status == status_filter; });
+                                [status_filter](int document_id,
+                                                DocumentStatus status, int rating) {
+                                    return status == status_filter;
+                                });
     }
 
     int GetDocumentCount() const
@@ -126,7 +131,8 @@ public:
         return documents_.size();
     }
 
-    tuple<vector<string>, DocumentStatus> MatchDocument(const string &raw_query, int document_id) const
+    tuple<vector<string>, DocumentStatus> MatchDocument(
+        const string &raw_query, int document_id) const
     {
         const Query query = ParseQuery(raw_query);
         vector<string> matched_words;
@@ -247,7 +253,8 @@ private:
     // Existence required
     double ComputeWordInverseDocumentFreq(const string &word) const
     {
-        return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
+        return log(GetDocumentCount() * 1.0 /
+                   word_to_document_freqs_.at(word).size());
     }
 
     template <class Pred>
@@ -263,8 +270,9 @@ private:
             const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
             for (const auto [document_id, term_freq] : word_to_document_freqs_.at(word))
             {
-                //if (documents_.at(document_id).status == status)
-                if (pred(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
+                auto document_status = documents_.at(document_id).status;
+                auto document_rating = documents_.at(document_id).rating;
+                if (pred(document_id, document_status, document_rating))
                 {
                     document_to_relevance[document_id] += term_freq * inverse_document_freq;
                 }
