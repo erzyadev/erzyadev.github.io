@@ -132,8 +132,11 @@ public:
     void AddDocument(int document_id, const string &document, DocumentStatus status, const vector<int> &ratings)
     {
         auto [it, success] = documents_.try_emplace(document_id, DocumentData{0, status});
-        if (document_id < 0 || !success)
-            throw invalid_argument("Document ID exception");
+        if (document_id < 0)
+            if (!success)
+                throw invalid_argument("Negative Document ID");
+        if (!success)
+            throw invalid_argument("Duplicated Document Id");
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
         for (const string &word : words)
@@ -151,7 +154,7 @@ public:
 
         sort(matched_documents.begin(), matched_documents.end(), [](const Document &lhs, const Document &rhs)
              {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6)
+                 if (abs(lhs.relevance - rhs.relevance) < TOLERANCE)
                  {
                      return lhs.rating > rhs.rating;
                  }
@@ -219,6 +222,7 @@ public:
     }
 
 private:
+    static constexpr double TOLERANCE = 1e-6;
     struct DocumentData
     {
         int rating;
@@ -276,8 +280,10 @@ private:
         {
             is_minus = true;
             text = text.substr(1);
-            if (text.empty() || text[0] == '-')
-                throw invalid_argument("Minus word exception");
+            if (text.empty())
+                throw invalid_argument("Empty minus word");
+            if (text[0] == '-')
+                throw invalid_argument("Double dash in a minus word");
         }
         return {move(text), is_minus, IsStopWord(text)};
     }
@@ -431,7 +437,7 @@ int main()
 
     try
     {
-        SearchServer search_server(vector{"большой"s, "кво\x12рец евгений"s});
+        SearchServer search_server{vector{"большой"s, "кво\x12рец евгений"s}};
     }
     catch (const exception &e)
     {
