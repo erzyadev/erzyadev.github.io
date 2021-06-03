@@ -20,9 +20,10 @@ public:
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) // Extract non-empty stop words
     {
         using namespace std;
-        if (!std::all_of(stop_words_.begin(), stop_words_.end(), IsValidWord))
+        if (auto it = std::find_if_not(stop_words_.begin(), stop_words_.end(), IsValidWord);
+            it != stop_words_.end())
         {
-            throw invalid_argument("Some of stop words are invalid"s);
+            throw invalid_argument("Invalid word encountered: "s + *it);
         }
     }
 

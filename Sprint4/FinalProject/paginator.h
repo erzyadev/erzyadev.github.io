@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <exception>
 
 template <typename Iterator>
 class IteratorRange
@@ -47,6 +48,9 @@ class Paginator
 public:
     Paginator(Iterator begin, Iterator end, size_t page_size)
     {
+        if (page_size == 0)
+            throw std::invalid_argument("Search ouput page cannot have size 0");
+
         for (size_t left = distance(begin, end); left > 0;)
         {
             const size_t current_page_size = std::min(page_size, left);
