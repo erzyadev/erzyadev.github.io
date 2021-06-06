@@ -7,7 +7,7 @@ template <typename Iterator>
 class IteratorRange
 {
 public:
-    IteratorRange(Iterator begin, Iterator end)
+    IteratorRange(const Iterator &begin, const Iterator &end)
         : first_(begin), last_(end), size_(distance(first_, last_))
     {
     }
