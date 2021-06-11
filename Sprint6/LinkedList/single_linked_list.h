@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 #include <algorithm>
-
+#include "my_test.h"
 template <typename Type>
 class SingleLinkedList
 {
@@ -93,6 +93,8 @@ class SingleLinkedList
         // Инкремент итератора, не указывающего на существующий элемент списка, приводит к неопределённому поведению
         BasicIterator &operator++() noexcept
         {
+            ASSERT_HINT(node_, "Attempt to increment an invalid iterator");
+
             node_ = node_->next_node;
             return *this;
         }
@@ -103,6 +105,7 @@ class SingleLinkedList
         // приводит к неопределённому поведению
         BasicIterator operator++(int) noexcept
         {
+            ASSERT_HINT(node_, "Attempt to increment an invalid iterator");
             auto old_value{*this};
             node_ = node_->next_node;
             return old_value;
@@ -113,6 +116,7 @@ class SingleLinkedList
         // приводит к неопределённому поведению
         [[nodiscard]] reference operator*() const noexcept
         {
+            ASSERT_HINT(node_, "Attempt to dereference an invalid iterator");
             return node_->value;
         }
 
@@ -121,6 +125,7 @@ class SingleLinkedList
         // приводит к неопределённому поведению
         [[nodiscard]] pointer operator->() const noexcept
         {
+            ASSERT_HINT(node_, "Attempt to dereference an invalid iterator");
             return &node_->value;
         }
 
@@ -320,12 +325,14 @@ public:
      */
     Iterator InsertAfter(ConstIterator pos, const Type &value)
     {
+        ASSERT_HINT(pos.node_, "Attempted an insertion after an invalid iterator");
         InsertAfter(pos.node_, value);
         return Iterator(pos.node_->next_node);
     }
 
     void PopFront() noexcept
     {
+        ASSERT_HINT(size_, "Attemtped to pop from an empty list");
         EraseAfter(head_);
     }
 
@@ -335,6 +342,8 @@ public:
      */
     Iterator EraseAfter(ConstIterator pos) noexcept
     {
+        ASSERT_HINT(pos.node_->next_node, "Attempted to delete from an invalid pointer");
+        ASSERT_HINT(size_, "Attempted to delete from an empty list");
         EraseAfter(*pos.node_);
         return Iterator{pos.node_->next_node};
     }
