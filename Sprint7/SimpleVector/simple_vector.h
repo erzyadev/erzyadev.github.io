@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cassert>
 #include <initializer_list>
 #include "array_ptr.h"
 #include <string>
 #include <stdexcept>
 #include <algorithm>
+#include "my_test.h"
 
 using namespace std::string_literals;
 
@@ -38,7 +38,6 @@ public:
     // Создаёт вектор из std::initializer_list
     SimpleVector(std::initializer_list<Type> init) : SimpleVector(init.size())
     {
-
         std::copy(init.begin(), init.end(), data_.Get());
     }
 
@@ -47,14 +46,12 @@ public:
     size_t GetSize() const noexcept
     {
         return size_;
-        return 0;
     }
 
     // Возвращает вместимость массива
     size_t GetCapacity() const noexcept
     {
         return capacity_;
-        return 0;
     }
 
     // Сообщает, пустой ли массив
@@ -187,21 +184,24 @@ public:
     // Добавляет элемент в конец вектора
     // При нехватке места увеличивает вдвое вместимость вектора
 
-    void PushBack(Type item)
+    template <typename T>
+    void PushBack(T &&item)
     {
         if (size_ == capacity_)
         {
             Reserve(std::max(1UL, 2 * size_));
         }
-        data_[size_++] = std::move(item);
+        data_[size_++] = std::forward<T>(item);
     }
 
     // Вставляет значение value в позицию pos.
     // Возвращает итератор на вставленное значение
     // Если перед вставкой значения вектор был заполнен полностью,
     // вместимость вектора должна увеличиться вдвое, а для вектора вместимостью 0 стать равной 1
-    Iterator Insert(ConstIterator pos, Type value)
+    template <typename T>
+    Iterator Insert(ConstIterator pos, T &&value)
     {
+        ASSERT_HINT(pos - begin() >= 0) && (end() - pos > 0),"Iterator does not point to vector element");
         Iterator it = const_cast<Iterator>(pos);
         if (size_ == capacity_)
         {
@@ -212,21 +212,24 @@ public:
 
         std::move_backward(it, end(), end() + 1);
         ++size_;
-        *it = std::move(value);
+        *it = std::forward<T>(value);
         return it;
     }
 
     // "Удаляет" последний элемент вектора. Вектор не должен быть пустым
     void PopBack() noexcept
     {
+        ASSERT_HINT(size_ != 0, "Attempting to remove an element from empty container");
         --size_;
     }
 
     // Удаляет элемент вектора в указанной позиции
     Iterator Erase(ConstIterator pos)
     {
+        ASSERT_HINT(size_ != 0, "Attempting to remove an element from empty container");
+        ASSERT_HINT(pos - begin() >= 0) && (end() - pos > 0),"Iterator does not point to vector element");
+
         Iterator it = const_cast<Iterator>(pos);
-        assert(size_ != 0);
 
         std::move(it + 1, end(), it);
         --size_;
@@ -243,6 +246,7 @@ public:
 
     void Reserve(size_t new_capacity)
     {
+
         if (new_capacity > capacity_)
         {
             ArrayPtr<Type> new_array{new Type[new_capacity]{}};
