@@ -5,6 +5,7 @@
 #include <string>
 #include <stdexcept>
 #include <algorithm>
+#include <utility>
 #include "my_test.h"
 
 using namespace std::string_literals;
@@ -38,7 +39,7 @@ public:
     // Создаёт вектор из std::initializer_list
     SimpleVector(std::initializer_list<Type> init) : SimpleVector(init.size())
     {
-        std::copy(init.begin(), init.end(), data_.Get());
+        std::move(init.begin(), init.end(), data_.Get());
     }
 
     SimpleVector(ReserveProxyObj reserve) : data_(new Type[reserve.capacity]{}), size_(0UL), capacity_(reserve.capacity) {}
@@ -47,6 +48,18 @@ public:
     {
         return size_;
     }
+    SimpleVector(const SimpleVector &other) : SimpleVector(other.size_)
+    {
+        std::copy(other.data_.Get(), other.data_.Get() + size_, data_.Get());
+    }
+    SimpleVector &operator=(SimpleVector rhs_copy)
+    {
+        swap(rhs_copy);
+        return *this;
+    };
+
+    SimpleVector(SimpleVector &&other)
+        : data_(std::move(other.data_)), size_(std::exchange(other.size_, 0UL)), capacity_(std::exchange(other.capacity_, 0UL)){};
 
     // Возвращает вместимость массива
     size_t GetCapacity() const noexcept
@@ -160,27 +173,7 @@ public:
     {
         return data_.Get() + size_;
     }
-    SimpleVector(const SimpleVector &other) : SimpleVector(other.size_)
-    {
-        std::move(other.data_.Get(), other.data_.Get() + size_, data_.Get());
-    }
-    SimpleVector(SimpleVector &&other) : SimpleVector()
-    {
-        swap(other);
-    }
 
-    SimpleVector &operator=(const SimpleVector &rhs)
-    {
-        SimpleVector temporary_copy(rhs);
-
-        swap(temporary_copy);
-        return *this;
-    }
-    SimpleVector &operator=(SimpleVector &&rhs)
-    {
-        swap(rhs);
-        return *this;
-    }
     // Добавляет элемент в конец вектора
     // При нехватке места увеличивает вдвое вместимость вектора
 
@@ -201,7 +194,7 @@ public:
     template <typename T>
     Iterator Insert(ConstIterator pos, T &&value)
     {
-        ASSERT_HINT(pos - begin() >= 0) && (end() - pos > 0),"Iterator does not point to vector element");
+        ASSERT_HINT((pos - begin() >= 0) && (end() - pos >= 0), "Iterator does not point to vector element");
         Iterator it = const_cast<Iterator>(pos);
         if (size_ == capacity_)
         {
@@ -227,7 +220,7 @@ public:
     Iterator Erase(ConstIterator pos)
     {
         ASSERT_HINT(size_ != 0, "Attempting to remove an element from empty container");
-        ASSERT_HINT(pos - begin() >= 0) && (end() - pos > 0),"Iterator does not point to vector element");
+        ASSERT_HINT((pos - begin() >= 0) && (end() - pos > 0), "Iterator does not point to vector element");
 
         Iterator it = const_cast<Iterator>(pos);
 
