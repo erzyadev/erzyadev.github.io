@@ -272,19 +272,13 @@ public:
     {
 
         Node *node = &head_;
-        try
+        SingleLinkedList tmp;
+        for (auto &val : other)
         {
-            for (auto &val : other)
-            {
-                InsertAfter(node, val);
-                node = node->next_node;
-            }
+            tmp.InsertAfter(node, val);
+            node = node->next_node;
         }
-        catch (std::bad_alloc &e)
-        {
-            Clear();
-            throw;
-        }
+        swap(tmp);
     }
     SingleLinkedList &operator=(const SingleLinkedList &rhs)
     {
