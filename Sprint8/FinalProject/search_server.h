@@ -6,6 +6,7 @@
 #include <set>
 #include <map>
 #include <vector>
+#include <shared_mutex>
 #include <cmath>
 #include <algorithm>
 #include "string_processing.h"
@@ -49,6 +50,7 @@ public:
     {
         using namespace std;
 
+        shared_lock lock_readonly{mutex_};
         const auto query = ParseQuery(raw_query);
 
         auto matched_documents = FindAllDocuments(policy, query, document_predicate);
@@ -93,15 +95,18 @@ public:
 
     int GetDocumentCount() const
     {
+        std::shared_lock lock_readonly{mutex_};
         return documents_.size();
     }
 
     auto begin() const
     {
+        std::shared_lock lock_readonly{mutex_};
         return document_ids_.begin();
     }
     auto end() const
     {
+        std::shared_lock lock_readonly{mutex_};
         return document_ids_.end();
     }
 
@@ -111,6 +116,7 @@ public:
     template <typename ExPolicy>
     std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(ExPolicy policy, std::string_view raw_query, int document_id) const
     {
+        std::shared_lock lock_readonly{mutex_};
         const auto query = ParseQuery(raw_query);
 
         auto is_word_in_document = [this, document_id](std::string_view word)
@@ -149,6 +155,8 @@ private:
     static const std::map<std::string_view, double> EMPTY_WORD_FREQ_MAP;
     static constexpr double TOLERANCE = 1e-6;
 
+    mutable std::shared_mutex mutex_;
+
     bool IsStopWord(std::string_view word) const
     {
         return stop_words_.count(word) > 0;
@@ -184,6 +192,7 @@ private:
     std::vector<Document> FindAllDocuments(const std::execution::sequenced_policy &, const Query &query, DocumentPredicate document_predicate) const
     {
         using namespace std;
+        shared_lock lock_readonly{mutex_};
         map<int, double> document_to_relevance;
         for (auto &&word : query.plus_words)
         {
@@ -231,6 +240,7 @@ private:
 template <typename ExPolicy>
 void SearchServer::RemoveDocument(ExPolicy policy, int document_id)
 {
+    std::lock_guard l{mutex_};
     document_ids_.erase(document_id);
     documents_.erase(document_id);
     for (auto &[word, freq] : document_to_word_freqs[document_id])
@@ -253,6 +263,7 @@ template <typename DocumentPredicate>
 std::vector<Document> SearchServer::FindAllDocuments(const std::execution::parallel_policy &, const Query &query, DocumentPredicate document_predicate) const
 {
     using namespace std;
+    shared_lock lock_readonly{mutex_};
     auto document_to_relevance = ConcurrentMap<int, double>{20};
     auto compute_relevance_kernel = [this, &document_to_relevance, &document_predicate](auto &&word)
     {

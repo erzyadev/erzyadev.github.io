@@ -6,6 +6,7 @@ const std::map<std::string_view, double> SearchServer::EMPTY_WORD_FREQ_MAP = {};
 
 void SearchServer::AddDocument(int document_id, string_view document, DocumentStatus status, const vector<int> &ratings)
 {
+    lock_guard l{mutex_};
     auto [it, success] = documents_.try_emplace(document_id, DocumentData{0, status});
     if (document_id < 0)
         throw invalid_argument("Negative Document ID");
@@ -134,6 +135,7 @@ const map<string_view, double> &SearchServer::GetWordFrequencies(int document_id
 
 void SearchServer::RemoveDocument(int document_id)
 {
+    lock_guard l{mutex_};
     document_ids_.erase(document_id);
     documents_.erase(document_id);
     for (auto &[word, freq] : document_to_word_freqs[document_id])
