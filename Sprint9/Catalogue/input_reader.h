@@ -18,20 +18,15 @@ namespace transport_catalogue::reader
         Bus,
         Stop,
     };
-
-    const std::map<std::string, InputQueryType, std::less<>> InputQueryConverter = {
-        {"Stop"s, InputQueryType::Stop},
-        {"Bus"s, InputQueryType::Bus}};
-
     struct AddQueries
     {
         std::vector<NewStop> stops;
         std::vector<Bus> buses;
     };
 
-    Coordinates ReadCoordinates(std::string_view &input);
+    geo::Coordinates ReadCoordinates(std::string_view &input);
 
-    DistanceTo GetDistanceTo(std::string_view &query);
+    DistanceTo ReadDistanceToStop(std::string_view &query);
 
     AddQueries ParseCreation(const std::vector<std::string> &inputs);
 

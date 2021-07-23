@@ -13,6 +13,11 @@
 
 namespace transport_catalogue
 {
+    struct DistanceTo
+    {
+        std::string_view to_stop;
+        int distance;
+    };
     struct Bus
     {
         std::string bus_number;
@@ -20,26 +25,22 @@ namespace transport_catalogue
         bool isLoop;
     };
 
-    struct Stop
-    {
-        std::string stop_name;
-        Coordinates coordinates;
-        std::unordered_set<std::string_view> buses;
-        std::unordered_map<std::string_view, double> distances;
-    };
-
-    struct DistanceTo
-    {
-        std::string_view to_stop;
-        int distance;
-    };
-
     struct NewStop
     {
         std::string_view stop_name;
-        Coordinates coordinates;
+        geo::Coordinates coordinates;
         std::vector<std::string_view> buses;
         std::vector<DistanceTo> distances;
+    };
+
+    struct Stop
+    {
+        std::string stop_name;
+        geo::Coordinates coordinates;
+        std::unordered_set<std::string_view> buses;
+        std::unordered_map<std::string_view, double> distances;
+        Stop(const NewStop &new_stop) : stop_name{new_stop.stop_name},
+                                        coordinates(new_stop.coordinates) {}
     };
 
     struct BusData
@@ -58,32 +59,36 @@ namespace transport_catalogue
 
     struct StopData
     {
-        std::vector<std::string_view> buses;
+        const std::vector<std::string_view> buses;
     };
 
     struct StopStats
     {
         std::string_view stop_name;
-        std::optional<StopData> stop_stats;
+        std::optional<StopData> stop_data;
     };
 
     class TransportCatalogue
     {
     public:
-        void AddStop(NewStop stop);
-        void AddBus(Bus bus);
+        TransportCatalogue(std::vector<NewStop> &&new_stops, std::vector<Bus> &&new_buses);
 
         BusStats GetBusStats(std::string_view bus_number) const;
-
         StopStats GetStopStats(std::string_view stop_name) const;
 
     private:
         std::deque<Bus> buses_;
         std::deque<Stop> stops_;
+
         std::unordered_map<std::string_view, Bus *> bus_index_;
         std::unordered_map<std::string_view, Stop *> stop_index_;
 
-        Stop *CreateStopByName(std::string_view stop_name);
+        std::unordered_map<std::string_view, BusData> bus_statistics_;
+        std::unordered_map<std::string_view, StopData> stop_statistics_;
+
+        BusData CalculateBusStats(const Bus &bus) const;
+        StopData CalculateStopStats(const Stop &stop_data) const;
+
         double GetGeographicalDistance(std::string_view from, std::string_view to) const;
         double GetDistanceStopsLoop(std::string_view from, std::string_view to) const;
         double GetDistanceStopsReturn(std::string_view from, std::string_view to) const;

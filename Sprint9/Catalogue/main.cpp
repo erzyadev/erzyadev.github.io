@@ -9,7 +9,7 @@ using namespace std;
 int main()
 {
 #ifdef MY_DEBUG
-    ifstream in("input.txt");
+    ifstream in("../input.txt");
 #else
     auto &in = cin;
 #endif
@@ -24,16 +24,7 @@ int main()
     }
     auto inputQueries = reader::ParseCreation(inputQueriesRaw);
 
-    TransportCatalogue catalogue;
-    for (auto &stopQuery : inputQueries.stops)
-    {
-        catalogue.AddStop(stopQuery);
-    }
-    for (auto &busQuery : inputQueries.buses)
-    {
-        catalogue.AddBus(busQuery);
-    }
-
+    auto catalogue = TransportCatalogue{move(inputQueries.stops), move(inputQueries.buses)};
     int statsQueryNum = reader::ReadNumber(in);
     in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     for (int i = 0; i < statsQueryNum; ++i)

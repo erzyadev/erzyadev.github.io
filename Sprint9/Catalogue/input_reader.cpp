@@ -2,10 +2,10 @@
 using namespace std;
 namespace transport_catalogue::reader
 {
-    Coordinates ReadCoordinates(std::string_view &input)
+    geo::Coordinates ReadCoordinates(std::string_view &input)
     {
 
-        Coordinates result;
+        geo::Coordinates result;
 
         char *dbl_end;
         result.lat = strtod(data(input), &dbl_end);
@@ -16,7 +16,7 @@ namespace transport_catalogue::reader
         return result;
     }
 
-    DistanceTo GetDistanceTo(std::string_view &query)
+    DistanceTo ReadDistanceToStop(std::string_view &query)
     {
 
         DistanceTo result;
@@ -52,7 +52,7 @@ namespace transport_catalogue::reader
                 while (!query.empty())
                 {
                     query.remove_prefix(2);
-                    new_stop.distances.push_back(GetDistanceTo(query));
+                    new_stop.distances.push_back(ReadDistanceToStop(query));
                 }
                 break;
             }
