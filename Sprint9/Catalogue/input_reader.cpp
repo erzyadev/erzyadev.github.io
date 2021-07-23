@@ -59,11 +59,10 @@ namespace transport_catalogue::reader
             case 'B':
 
                 query.remove_prefix(4);
-                result.buses.emplace_back();
+                auto pos = query.find(':');
+                result.buses.emplace_back(query.substr(0, pos));
                 auto &new_bus = result.buses.back();
 
-                auto pos = query.find(':');
-                new_bus.bus_number = query.substr(0, pos);
                 query.remove_prefix(pos + 2);
                 auto delim_pos = query.find_first_of(">-");
                 char delim = query[delim_pos];

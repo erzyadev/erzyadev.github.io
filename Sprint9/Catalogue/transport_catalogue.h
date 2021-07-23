@@ -20,7 +20,9 @@ namespace transport_catalogue
     };
     struct Bus
     {
-        std::string bus_number;
+        Bus(std::string_view new_bus_number) : bus_number{new_bus_number} {}
+
+        const std::string bus_number;
         std::vector<std::string> stops;
         bool isLoop;
     };
@@ -35,12 +37,13 @@ namespace transport_catalogue
 
     struct Stop
     {
-        std::string stop_name;
+        Stop(const NewStop &new_stop) : stop_name{new_stop.stop_name},
+                                        coordinates(new_stop.coordinates) {}
+
+        const std::string stop_name;
         geo::Coordinates coordinates;
         std::unordered_set<std::string_view> buses;
         std::unordered_map<std::string_view, double> distances;
-        Stop(const NewStop &new_stop) : stop_name{new_stop.stop_name},
-                                        coordinates(new_stop.coordinates) {}
     };
 
     struct BusData
