@@ -60,16 +60,14 @@ namespace json_reader
         settings.stop_radius = as_map.at("stop_radius").AsDouble();
 
         settings.stop_label_font_size = as_map.at("stop_label_font_size").AsDouble();
-        for (auto &double_node : as_map.at("stop_label_offset").AsArray())
-        {
-            settings.stop_label_offset.push_back(double_node.AsDouble());
-        }
+        auto &stop_label_offset = as_map.at("stop_label_offset").AsArray();
+        settings.stop_label_offset.x = stop_label_offset[0].AsDouble();
+        settings.stop_label_offset.y = stop_label_offset[1].AsDouble();
 
         settings.bus_label_font_size = as_map.at("bus_label_font_size").AsDouble();
-        for (auto &double_node : as_map.at("bus_label_offset").AsArray())
-        {
-            settings.bus_label_offset.push_back(double_node.AsDouble());
-        }
+        auto &bus_label_offset = as_map.at("bus_label_offset").AsArray();
+        settings.bus_label_offset.x = bus_label_offset[0].AsDouble();
+        settings.bus_label_offset.y = bus_label_offset[1].AsDouble();
 
         settings.underlayer_color = GetColorFromText(as_map.at("underlayer_color"));
         settings.underlayer_width = as_map.at("underlayer_width").AsDouble();

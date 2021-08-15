@@ -78,6 +78,10 @@ namespace transport_catalogue
                            { return stop.coordinates; });
             return stop_coordinates;
         }
+        geo::Coordinates GetStopCoordinates(std::string stop_name) const
+        {
+            return stop_index_.at(stop_name)->coordinates;
+        }
 
     private:
         std::deque<Bus> buses_;

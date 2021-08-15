@@ -22,11 +22,11 @@ namespace map_renderer
         double line_width;
         double stop_radius;
 
-        double stop_label_font_size;
-        std::vector<double> stop_label_offset;
+        int stop_label_font_size;
+        svg::Point stop_label_offset;
 
-        double bus_label_font_size;
-        std::vector<double> bus_label_offset;
+        int bus_label_font_size;
+        svg::Point bus_label_offset;
 
         svg::Color underlayer_color;
         double underlayer_width;
