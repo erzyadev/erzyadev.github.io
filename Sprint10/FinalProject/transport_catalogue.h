@@ -17,17 +17,6 @@ namespace transport_catalogue
 {
     using namespace domain;
 
-    struct StopMapInfo
-    {
-        std::string stop_name;
-        geo::Coordinates coordinates;
-    };
-    struct BusMapInfo
-    {
-        std::string bus_number;
-        std::vector<StopMapInfo> stops;
-    };
-
     class TransportCatalogue
     {
     public:
@@ -46,38 +35,8 @@ namespace transport_catalogue
             return stops_;
         }
 
-        std::vector<BusMapInfo> GetMapData() const
-        {
-            std::vector<BusMapInfo> map_data;
-            for (auto &bus : buses_)
-            {
-                auto &new_bus = map_data.emplace_back();
-                new_bus.bus_number = bus.bus_number;
-                for (auto &stop : bus.stops)
-                {
-                    new_bus.stops.push_back({stop, stop_index_.at(stop)->coordinates});
-                }
-                if (!bus.isLoop)
-                {
-                    for (auto reverse_it = next(bus.stops.rbegin());
-                         reverse_it != bus.stops.rend();
-                         ++reverse_it)
-                    {
-                        new_bus.stops.push_back({*reverse_it,
-                                                 stop_index_.at(*reverse_it)->coordinates});
-                    }
-                }
-            }
-            return map_data;
-        }
+        std::vector<geo::Coordinates> GetNonemptyStopCoordinates() const;
 
-        std::vector<geo::Coordinates> GetStopCoordinates() const
-        {
-            std::vector<geo::Coordinates> stop_coordinates;
-            std::transform(stops_.begin(), stops_.end(), std::back_inserter(stop_coordinates), [](const Stop &stop)
-                           { return stop.coordinates; });
-            return stop_coordinates;
-        }
         geo::Coordinates GetStopCoordinates(std::string stop_name) const
         {
             return stop_index_.at(stop_name)->coordinates;

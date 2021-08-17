@@ -88,22 +88,11 @@ namespace svg
     struct OstreamColorPrinter
     {
         std::ostream &out;
-        std::ostream &operator()(std::monostate) const
-        {
-            return out << "none";
-        }
-        std::ostream &operator()(const std::string &root) const
-        {
-            return out << root;
-        }
-        std::ostream &operator()(svg::Rgb roots) const
-        {
-            return out << "rgb("sv << unsigned(roots.red) << ","sv << unsigned(roots.green) << "," << unsigned(roots.blue) << ")"sv;
-        }
-        std::ostream &operator()(svg::Rgba roots) const
-        {
-            return out << "rgba("sv << unsigned(roots.red) << ","sv << unsigned(roots.green) << "," << unsigned(roots.blue) << ","sv << roots.opacity << ")"sv;
-        }
+        std::ostream &operator()(std::monostate) const;
+        std::ostream &operator()(const std::string &root) const;
+        std::ostream &operator()(svg::Rgb roots) const;
+
+        std::ostream &operator()(svg::Rgba roots) const;
     };
     /*
  * Абстрактный базовый класс Object служит для унифицированного хранения
@@ -127,20 +116,7 @@ namespace svg
         ROUND,
         SQUARE,
     };
-    inline std::ostream &operator<<(std::ostream &out, StrokeLineCap line_cap)
-    {
-        switch (line_cap)
-        {
-        case StrokeLineCap::BUTT:
-            return out << "butt";
-        case StrokeLineCap::ROUND:
-            return out << "round";
-        case StrokeLineCap::SQUARE:
-            return out << "square";
-        default:
-            throw std::invalid_argument("Incorrect stroke-linecap parameter");
-        }
-    }
+    std::ostream &operator<<(std::ostream &out, StrokeLineCap line_cap);
     enum class StrokeLineJoin
     {
         ARCS,
@@ -149,24 +125,8 @@ namespace svg
         MITER_CLIP,
         ROUND,
     };
-    inline std::ostream &operator<<(std::ostream &out, StrokeLineJoin line_join)
-    {
-        switch (line_join)
-        {
-        case StrokeLineJoin::ARCS:
-            return out << "arcs";
-        case StrokeLineJoin::BEVEL:
-            return out << "bevel";
-        case StrokeLineJoin::MITER:
-            return out << "miter";
-        case StrokeLineJoin::MITER_CLIP:
-            return out << "miter-clip";
-        case StrokeLineJoin::ROUND:
-            return out << "round";
-        default:
-            throw std::invalid_argument("Incorrect stroke-linejoin parameter");
-        }
-    }
+     std::ostream &operator<<(std::ostream &out, StrokeLineJoin line_join);
+
     template <typename Owner>
     class PathProps
     {
@@ -267,28 +227,9 @@ namespace svg
     {
     public:
         // Добавляет очередную вершину к ломаной линии
-        Polyline &AddPoint(Point point)
-        {
-            points_.push_back(point);
-            return *this;
-        }
+        Polyline &AddPoint(Point point);
 
-        void RenderObject(const RenderContext &context) const override
-        {
-            auto &out = context.out;
-            out << "<polyline points=\"";
-            if (!points_.empty())
-            {
-                out << points_[0];
-                for (size_t i = 1; i < points_.size(); ++i)
-                {
-                    out << ' ' << points_[i];
-                }
-            }
-            out << "\" ";
-            RenderAttrs(out);
-            out << "/>";
-        }
+        void RenderObject(const RenderContext &context) const override;
         /*
      * Прочие методы и данные, необходимые для реализации элемента <polyline>
      */
@@ -304,65 +245,19 @@ namespace svg
     {
     public:
         // Задаёт координаты опорной точки (атрибуты x и y)
-        Text &SetPosition(Point pos)
-        {
-            pos_ = pos;
-            return *this;
-        }
-
+        Text &SetPosition(Point pos);
         // Задаёт смещение относительно опорной точки (атрибуты dx, dy)
-        Text &SetOffset(Point offset)
-        {
-            offset_ = offset;
-            return *this;
-        }
-
+        Text &SetOffset(Point offset);
         // Задаёт размеры шрифта (атрибут font-size)
-        Text &SetFontSize(uint32_t size)
-        {
-            size_ = size;
-            return *this;
-        }
-
+        Text &SetFontSize(uint32_t size);
         // Задаёт название шрифта (атрибут font-family)
-        Text &SetFontFamily(std::string font_family)
-        {
-            font_family_ = font_family;
-            return *this;
-        }
-
+        Text &SetFontFamily(std::string font_family);
         // Задаёт толщину шрифта (атрибут font-weight)
-        Text &SetFontWeight(std::string font_weight)
-        {
-            font_weight_ = font_weight;
-            return *this;
-        }
-
+        Text &SetFontWeight(std::string font_weight);
         // Задаёт текстовое содержимое объекта (отображается внутри тега text)
-        Text &SetData(std::string data)
-        {
-            data_ = std::move(data);
-            return *this;
-        }
-
+        Text &SetData(std::string data);
         // Прочие данные и методы, необходимые для реализации элемента <text>
-        void RenderObject(const RenderContext &context) const override
-        {
-            auto &out = context.out;
-            out << "<text x=\"" << pos_.x << "\" y=\"" << pos_.y << "\" ";
-            out << "dx=\"" << offset_.x << "\" dy=\"" << offset_.y << "\" ";
-            if (size_)
-                out << "font-size=\"" << size_ << "\" ";
-
-            if (!font_family_.empty())
-                out << "font-family=\"" << font_family_ << "\" ";
-            if (!font_weight_.empty())
-                out << "font-weight=\"" << font_weight_ << "\" ";
-            RenderAttrs(context.out);
-            out << '>';
-            out << TextConverter(data_);
-            out << "</text>";
-        }
+        void RenderObject(const RenderContext &context) const override;
 
     private:
         Point pos_ = Point{};
@@ -430,24 +325,10 @@ namespace svg
     */
 
         // Добавляет в svg-документ объект-наследник svg::Object
-        void AddPtr(std::unique_ptr<Object> &&obj) override
-        {
-            object_ptrs_.push_back(move(obj));
-        }
+        void AddPtr(std::unique_ptr<Object> &&obj) override;
 
         // Выводит в ostream svg-представление документа
-        void Render(std::ostream &out) const
-        {
-            out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"sv << std::endl;
-            out << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << std::endl;
-
-            for (auto &object_ptr : object_ptrs_)
-            {
-                object_ptr->Render(RenderContext{out});
-            }
-
-            out << "</svg>"sv;
-        }
+        void Render(std::ostream &out) const;
 
         // Прочие методы и данные, необходимые для реализации класса Document
     private:
@@ -474,10 +355,7 @@ namespace shapes
         }
 
         // Реализует метод Draw интерфейса svg::Drawable
-        void Draw(svg::ObjectContainer &container) const override
-        {
-            container.Add(svg::Polyline().AddPoint(p1_).AddPoint(p2_).AddPoint(p3_).AddPoint(p1_));
-        }
+        void Draw(svg::ObjectContainer &container) const override;
 
     private:
         svg::Point p1_, p2_, p3_;
@@ -489,56 +367,22 @@ namespace shapes
         Star(svg::Point center, double outer_radius, double inner_radius, int num_rays)
             : center_(center), outer_radius_(outer_radius), inner_radius_(inner_radius), num_rays_(num_rays) {}
 
-        void Draw(svg::ObjectContainer &container) const override
-        {
-            container.Add(CreateStar());
-        }
+        void Draw(svg::ObjectContainer &container) const override;
 
     private:
         svg::Point center_;
         double outer_radius_;
         double inner_radius_;
         int num_rays_;
-        svg::Polyline CreateStar() const
-        {
-            using namespace svg;
-            Polyline polyline;
-            for (int i = 0; i <= num_rays_; ++i)
-            {
-                double angle = 2 * M_PI * (i % num_rays_) / num_rays_;
-                polyline.AddPoint({center_.x + outer_radius_ * sin(angle), center_.y - outer_radius_ * cos(angle)});
-                if (i == num_rays_)
-                {
-                    break;
-                }
-                angle += M_PI / num_rays_;
-                polyline.AddPoint({center_.x + inner_radius_ * sin(angle), center_.y - inner_radius_ * cos(angle)});
-            }
-            std::string fill = "red";
-            std::string stroke = "black";
-            return polyline.SetFillColor(fill).SetStrokeColor(stroke);
-        }
+        svg::Polyline CreateStar() const;
     };
+
     class Snowman : public svg::Drawable
-    { /* Реализуйте самостоятельно */
+    {
     public:
         Snowman(svg::Point head_center, double head_radius)
             : head_center_(head_center), head_radius_(head_radius) {}
-        void Draw(svg::ObjectContainer &container) const override
-        {
-            std::string fill = "rgb(240,240,240)";
-            std::string stroke = "black";
-
-            svg::Point bottom_center = svg::Point{head_center_.x, head_center_.y + 5 * head_radius_};
-            double bottom_radius = 2 * head_radius_;
-            container.Add(svg::Circle().SetCenter(bottom_center).SetRadius(bottom_radius).SetFillColor(fill).SetStrokeColor(stroke));
-
-            svg::Point middle_center = svg::Point{head_center_.x, head_center_.y + 2 * head_radius_};
-            double middle_radius = 1.5 * head_radius_;
-            container.Add(svg::Circle().SetCenter(middle_center).SetRadius(middle_radius).SetFillColor(fill).SetStrokeColor(stroke));
-
-            container.Add(svg::Circle().SetCenter(head_center_).SetRadius(head_radius_).SetFillColor(fill).SetStrokeColor(stroke));
-        }
+        void Draw(svg::ObjectContainer &container) const override;
 
     private:
         svg::Point head_center_;

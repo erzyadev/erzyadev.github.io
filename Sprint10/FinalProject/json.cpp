@@ -386,4 +386,84 @@ namespace json
         output << root;
     }
 
+    std::ostream &Node::NodeDataPrinter::operator()(const Array &array) {
+        out << '[';
+        if (!array.empty())
+        {
+            out << *array.begin();
+            for (auto node_it = array.begin() + 1; node_it != array.end(); ++node_it)
+            {
+                out << ",";
+                out << *node_it;
+            }
+        }
+        return out << ']';
+    }
+
+    std::ostream &Node::NodeDataPrinter::operator()(const Dict &dict) {
+        out << '{';
+        if (!dict.empty())
+        {
+
+            operator()(dict.begin()->first) << ":" << dict.begin()->second;
+            for (auto node_it = next(dict.begin()); node_it != dict.end(); ++node_it)
+            {
+                out << ",";
+                operator()(node_it->first) << ":" << node_it->second;
+            }
+        }
+
+        return out << '}';
+    }
+
+    std::ostream &Node::NodeDataPrinter::operator()(std::nullptr_t) {
+        return out << "null";
+    }
+
+    std::ostream &Node::NodeDataPrinter::operator()(int value) {
+        return out << value;
+    }
+
+    std::ostream &Node::NodeDataPrinter::operator()(double value) {
+        return out << value;
+    }
+
+    std::ostream &Node::NodeDataPrinter::operator()(bool value) {
+        return out << std::boolalpha << value;
+    }
+
+    std::ostream &Node::NodeDataPrinter::operator()(const string &str) {
+        out << "\"";
+
+        for (char c : str)
+        {
+
+            switch (c)
+            {
+                case '\t':
+                    out << "\\t";
+                    break;
+
+                case '\n':
+                    out << "\\n";
+                    break;
+
+                case '\r':
+                    out << "\\r";
+                    break;
+
+                case '\"':
+                    out << "\\\"";
+                    break;
+
+                case '\\':
+                    out << "\\\\";
+                    break;
+                default:
+                    out << c;
+            }
+        }
+
+        return out << "\"";
+    }
 } // namespace json

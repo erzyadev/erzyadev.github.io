@@ -34,26 +34,23 @@ namespace
 
 svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::TransportCatalogue &catalogue) const
 {
-    //throw std::runtime_error{"Not implemented"};
-    //return svg::Document{};
-    using namespace svg;
-    //auto map_data = catalogue.GetMapData();
-    Document rendered_map;
-    // std::sort(map_data.begin(), map_data.end(), [](auto &bus1, auto &bus2)
-    //           { return bus1.bus_number < bus2.bus_number; });
 
-    auto stop_coordinates = catalogue.GetStopCoordinates();
+    using namespace svg;
+
+    Document rendered_map;
+
+    auto stop_coordinates = catalogue.GetNonemptyStopCoordinates();
     SphereProjector projector{stop_coordinates.begin(), stop_coordinates.end(),
                               settings_.width, settings_.height, settings_.padding};
 
     int palette_size = settings_.color_palette.size();
     auto &buses = catalogue.GetBuses();
-    auto &stops = catalogue.GetStops();
     auto bus_ptrs = populate_ptrs(buses.cbegin(), buses.cend());
     std::sort(bus_ptrs.begin(), bus_ptrs.end(),
               [](const domain::Bus *x, const domain::Bus *y)
               { return x->bus_number < y->bus_number; });
 
+    //Draw route lines
     int color_counter = 0;
     for (auto bus_ptr : bus_ptrs)
     {
@@ -80,8 +77,20 @@ svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::Trans
             route.SetStrokeLineCap(StrokeLineCap::ROUND);
             route.SetStrokeLineJoin(StrokeLineJoin::ROUND);
             rendered_map.Add(route);
+            color_counter = (color_counter + 1) % palette_size;
+        }
+    }
 
+    //Draw bus route names
+    color_counter = 0;
+    for (auto bus_ptr : bus_ptrs)
+    {
+        auto &bus = *bus_ptr;
+        if (!bus.stops.empty())
+        {
             //Draw stop names
+            svg::Color current_route_color = settings_.color_palette[color_counter];
+
             Text route_name;
             route_name.SetData(bus.bus_number);
             route_name.SetPosition(projector(catalogue.GetStopCoordinates(bus.stops.front())));
@@ -99,7 +108,7 @@ svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::Trans
             route_name_underlayer.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
             rendered_map.Add(route_name_underlayer);
             rendered_map.Add(route_name);
-            if (!bus.isLoop)
+            if (!bus.isLoop && bus.stops.back() != bus.stops.front())
             {
                 Text last_stop_underlayer{route_name_underlayer};
                 last_stop_underlayer.SetPosition(projector(catalogue.GetStopCoordinates(bus.stops.back())));
@@ -113,6 +122,9 @@ svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::Trans
         }
     }
 
+    //Draw stop circles
+
+    auto &stops = catalogue.GetStops();
     auto stop_ptrs = populate_ptrs(stops.begin(), stops.end());
     std::sort(stop_ptrs.begin(), stop_ptrs.end(), [](const domain::Stop *x, const domain::Stop *y)
               { return x->stop_name < y->stop_name; });
@@ -127,7 +139,7 @@ svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::Trans
             rendered_map.Add(stop_circle);
         }
     }
-
+    //Draw stop names
     for (auto stop_ptr : stop_ptrs)
     {
         if (!stop_ptr->buses.empty())
@@ -152,8 +164,5 @@ svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::Trans
         }
     }
 
-    //Draw stop circles
-    //Draw stop names
-    //Something else
     return rendered_map;
 }

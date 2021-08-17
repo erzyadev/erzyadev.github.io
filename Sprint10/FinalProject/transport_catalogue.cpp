@@ -141,6 +141,17 @@ namespace transport_catalogue
             return {stop_name, {}};
     }
 
+    std::vector<geo::Coordinates> TransportCatalogue::GetNonemptyStopCoordinates() const
+    {
+        std::vector<geo::Coordinates> stop_coordinates;
+        std::for_each(stops_.begin(), stops_.end(), [&stop_coordinates](const Stop &stop)
+                      {
+                          if (!stop.buses.empty())
+                              stop_coordinates.push_back(stop.coordinates);
+                      });
+        return stop_coordinates;
+    }
+
     std::ostream &operator<<(std::ostream &out, const BusStats &busInfo)
     {
         out << "Bus " << busInfo.bus_number << ": ";

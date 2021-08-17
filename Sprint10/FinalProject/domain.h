@@ -35,19 +35,10 @@ namespace domain
         bool isLoop;
     };
 
-    // struct NewStop
-    // {
-    //     std::string stop_name;
-    //     geo::Coordinates coordinates;
-    //     //std::vector<std::string> buses;
-    //     std::unordered_map<std::string, double> distances;
-    // };
+;
 
     struct Stop
     {
-        // Stop(const NewStop &new_stop) : stop_name{new_stop.stop_name},
-        //                                 coordinates(new_stop.coordinates) {}
-
         std::string stop_name;
         geo::Coordinates coordinates;
         std::unordered_set<std::string> buses;
@@ -58,7 +49,7 @@ namespace domain
     {
         int total_stops;
         int unique_stops;
-        int route_length;
+        double route_length;
         double curvature;
     };
 
