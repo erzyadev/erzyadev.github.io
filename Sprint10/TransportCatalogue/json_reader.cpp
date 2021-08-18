@@ -79,7 +79,46 @@ namespace json_reader
         }
         return settings;
     }
-
+    namespace
+    {
+        domain::Bus ReadBusFromJsonMap(const json::Dict &bus_map)
+        {
+            domain::Bus new_bus{bus_map.at("name").AsString()};
+            for (auto &stop_node : bus_map.at("stops").AsArray())
+            {
+                new_bus.stops.push_back(stop_node.AsString());
+            }
+            new_bus.isLoop = bus_map.at("is_roundtrip").AsBool();
+            return new_bus;
+        }
+        domain::Stop ReadStopFromJsonMap(const json::Dict &stop_map)
+        {
+            domain::Stop new_stop;
+            new_stop.stop_name = stop_map.at("name").AsString();
+            new_stop.coordinates.lat = stop_map.at("latitude").AsDouble();
+            new_stop.coordinates.lng = stop_map.at("longitude").AsDouble();
+            for (auto &[stop_name, distance_node] : stop_map.at("road_distances").AsMap())
+            {
+                new_stop.distances[stop_name] = distance_node.AsInt();
+            }
+            return new_stop;
+        }
+        json_reader::StatRequest ReadStatRequestFromJsonMap(const json::Dict &request_map)
+        {
+            StatRequest new_stat_request;
+            new_stat_request.id = request_map.at("id").AsInt();
+            if (request_map.at("type").AsString() == "Map"sv)
+            {
+                new_stat_request.request_type = StatRequestType::MAP_REQUEST;
+            }
+            else
+            {
+                new_stat_request.request_type = request_map.at("type").AsString() == "Bus" ? StatRequestType::BUS_REQUEST : StatRequestType::STOP_REQUEST;
+                new_stat_request.name = request_map.at("name").AsString();
+            }
+            return new_stat_request;
+        }
+    }
     JsonReadResult ReadJson(std::istream &input)
     {
         JsonReadResult result;
@@ -91,41 +130,18 @@ namespace json_reader
             auto &as_map = request.AsMap();
             if (as_map.at("type").AsString() == "Bus")
             {
-                auto &new_bus = result.new_buses.emplace_back(as_map.at("name").AsString());
-                for (auto &stop_node : as_map.at("stops").AsArray())
-                {
-                    new_bus.stops.push_back(stop_node.AsString());
-                }
-                new_bus.isLoop = as_map.at("is_roundtrip").AsBool();
+                result.new_buses.emplace_back(ReadBusFromJsonMap(as_map));
             }
             else if (as_map.at("type").AsString() == "Stop")
             {
-                auto &new_stop = result.new_stops.emplace_back();
-                new_stop.stop_name = as_map.at("name").AsString();
-                new_stop.coordinates.lat = as_map.at("latitude").AsDouble();
-                new_stop.coordinates.lng = as_map.at("longitude").AsDouble();
-                for (auto &[stop_name, distance_node] : as_map.at("road_distances").AsMap())
-                {
-                    new_stop.distances[stop_name] = distance_node.AsInt();
-                }
+                result.new_stops.emplace_back(ReadStopFromJsonMap(as_map));
             }
             else
                 throw std::invalid_argument{"Invalid request type"};
         }
         for (auto &request : stat_request_data.AsArray())
         {
-            auto &as_map = request.AsMap();
-            auto &new_stat_request = result.stat_requests.emplace_back();
-            new_stat_request.id = as_map.at("id").AsInt();
-            if (as_map.at("type").AsString() == "Map"sv)
-            {
-                new_stat_request.request_type = StatRequestType::MAP_REQUEST;
-            }
-            else
-            {
-                new_stat_request.request_type = as_map.at("type").AsString() == "Bus" ? StatRequestType::BUS_REQUEST : StatRequestType::STOP_REQUEST;
-                new_stat_request.name = as_map.at("name").AsString();
-            }
+            result.stat_requests.emplace_back(ReadStatRequestFromJsonMap(request.AsMap()));
         }
         result.render_settings = ReadRenderSetting(json_document.GetRoot().AsMap().at("render_settings"));
         return result;

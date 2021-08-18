@@ -35,8 +35,6 @@ namespace domain
         bool isLoop;
     };
 
-;
-
     struct Stop
     {
         std::string stop_name;

@@ -1,13 +1,3 @@
-// int main() {
-//     /*
-//      * Примерная структура программы:
-//      *
-//      * Считать JSON из stdin
-//      * Построить на его основе JSON базу данных транспортного справочника
-//      * Выполнить запросы к справочнику, находящиеся в массива "stat_requests", построив JSON-массив
-//      * с ответами Вывести в stdout ответы в виде JSON
-//      */
-// }
 
 #include "transport_catalogue.h"
 #include "request_handler.h"
@@ -31,35 +21,8 @@ int main()
     auto responses = json::Array{};
     auto renderer = map_renderer::MapRenderer{render_settings};
     auto handler = request_handler::RequestHandler(catalogue, renderer);
-    for (auto &request : json_parse_result.stat_requests)
-    {
-        switch (request.request_type)
-        {
-        case json_reader::StatRequestType::BUS_REQUEST:
-            responses.push_back(json_reader::MakeBusStatsNode(handler.GetBusStats(request.name).bus_stats, request.id));
-            break;
-        case json_reader::StatRequestType::STOP_REQUEST:
-            responses.push_back(json_reader::MakeStopStatsNode(handler.GetStopStats(request.name).stop_data, request.id));
-            break;
-        case ::json_reader::StatRequestType::MAP_REQUEST:
-#ifdef MY_DEBUG
-            ofstream svg_out("output.svg");
-            auto doc = handler.RenderMap();
-            doc.Render(svg_out);
-#endif
-            responses.push_back(json_reader::MakeMapNode(handler.RenderMap(), request.id));
-            break;
-        }
-    }
-    auto result_document = json::Document(json::Node(responses));
+
+    auto result_document = request_handler::ProcessStatRequests(handler,
+                                                                json_parse_result.stat_requests);
     json::Print(result_document, cout);
 }
-
-// int main()
-// {
-//     ifstream in("../Untitled-1.json");
-//     auto json_parse_result = json::Load(in);
-//     auto svg_string = json_parse_result.GetRoot().AsArray()[0].AsMap().at("map").AsString();
-//     ofstream out("../version1.svg");
-//     out << svg_string << endl;
-// }
