@@ -27,17 +27,6 @@ namespace json
             return Node(move(result));
         }
 
-        // Node LoadInt(istream &input)
-        // {
-        //     int result = 0;
-        //     while (isdigit(input.peek()))
-        //     {
-        //         result *= 10;
-        //         result += input.get() - '0';
-        //     }
-        //     return Node(result);
-        // }
-
         Node LoadNumber(std::istream &input)
         {
             using namespace std::literals;
@@ -386,7 +375,8 @@ namespace json
         output << root;
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(const Array &array) {
+    std::ostream &Node::NodeDataPrinter::operator()(const Array &array)
+    {
         out << '[';
         if (!array.empty())
         {
@@ -400,7 +390,8 @@ namespace json
         return out << ']';
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(const Dict &dict) {
+    std::ostream &Node::NodeDataPrinter::operator()(const Dict &dict)
+    {
         out << '{';
         if (!dict.empty())
         {
@@ -416,23 +407,28 @@ namespace json
         return out << '}';
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(std::nullptr_t) {
+    std::ostream &Node::NodeDataPrinter::operator()(std::nullptr_t)
+    {
         return out << "null";
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(int value) {
+    std::ostream &Node::NodeDataPrinter::operator()(int value)
+    {
         return out << value;
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(double value) {
+    std::ostream &Node::NodeDataPrinter::operator()(double value)
+    {
         return out << value;
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(bool value) {
+    std::ostream &Node::NodeDataPrinter::operator()(bool value)
+    {
         return out << std::boolalpha << value;
     }
 
-    std::ostream &Node::NodeDataPrinter::operator()(const string &str) {
+    std::ostream &Node::NodeDataPrinter::operator()(const string &str)
+    {
         out << "\"";
 
         for (char c : str)
@@ -440,27 +436,27 @@ namespace json
 
             switch (c)
             {
-                case '\t':
-                    out << "\\t";
-                    break;
+            case '\t':
+                out << "\\t";
+                break;
 
-                case '\n':
-                    out << "\\n";
-                    break;
+            case '\n':
+                out << "\\n";
+                break;
 
-                case '\r':
-                    out << "\\r";
-                    break;
+            case '\r':
+                out << "\\r";
+                break;
 
-                case '\"':
-                    out << "\\\"";
-                    break;
+            case '\"':
+                out << "\\\"";
+                break;
 
-                case '\\':
-                    out << "\\\\";
-                    break;
-                default:
-                    out << c;
+            case '\\':
+                out << "\\\\";
+                break;
+            default:
+                out << c;
             }
         }
 
