@@ -1,0 +1,3 @@
+/Users/sergeykaniskin/CPP/YP/Sprint11/RLE/build/CMakeFiles/rebuild_cache.dir
+/Users/sergeykaniskin/CPP/YP/Sprint11/RLE/build/CMakeFiles/edit_cache.dir
+/Users/sergeykaniskin/CPP/YP/Sprint11/RLE/build/CMakeFiles/rle.dir

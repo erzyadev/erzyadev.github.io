@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/Users/sergeykaniskin/CPP/YP/Sprint11/RLE/build",
+  "command": "/usr/bin/clang++   -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -std=gnu++2a -o CMakeFiles/rle.dir/main.cpp.o -c /Users/sergeykaniskin/CPP/YP/Sprint11/RLE/main.cpp",
+  "file": "/Users/sergeykaniskin/CPP/YP/Sprint11/RLE/main.cpp"
+}
+]
