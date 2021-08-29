@@ -3,35 +3,27 @@ using namespace std;
 namespace transport_catalogue
 {
     TransportCatalogue::TransportCatalogue(vector<Stop> &&new_stops, vector<Bus> &&new_buses)
+        : buses_(move_iterator(new_buses.begin()), move_iterator(new_buses.end())),
+          stops_(move_iterator(new_stops.begin()), move_iterator(new_stops.end()))
     {
-        for (auto &stop : new_stops)
-        {
-            auto new_stop_ptr = &stops_.emplace_back(stop);
 
-            stop_index_[new_stop_ptr->stop_name] = new_stop_ptr;
-        }
-
-        for (auto &bus : new_buses)
+        for (auto &stop : stops_)
         {
-            auto new_bus_ptr = &buses_.emplace_back(move(bus));
-            bus_index_[new_bus_ptr->bus_number] = new_bus_ptr;
-            for (std::string stop : new_bus_ptr->stops)
-            {
-                stop_index_.at(stop)->buses.insert(new_bus_ptr->bus_number);
-            }
+            stop_index_[stop.stop_name] = &stop;
         }
-        for (auto &stop : new_stops)
+        for (auto &bus : buses_)
         {
-            auto stop_ptr = stop_index_[stop.stop_name];
-            for (auto &distance : stop.distances)
+            bus_index_[bus.bus_number] = &bus;
+            for (auto &stop : bus.stops)
             {
-                auto to_stop_ptr = stop_index_[distance.first];
-                stop_ptr->distances[to_stop_ptr->stop_name] = distance.second;
+                stop_index_.at(stop)->buses.insert(bus.bus_number);
             }
         }
 
         for (auto &bus : buses_)
+        {
             bus_statistics_[bus.bus_number] = CalculateBusData(bus);
+        }
         for (auto &stop : stops_)
         {
             auto bus_sorting_storage = vector(stop.buses.begin(), stop.buses.end());

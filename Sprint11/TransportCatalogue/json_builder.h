@@ -90,11 +90,11 @@ namespace json
         Dict dict_;
     };
 
-    class ReadyToBuild
+    class ReadyNodeContext
     {
 
     public:
-        ReadyToBuild(Node::Value &&value) : value_(move(value)) {}
+        ReadyNodeContext(Node::Value &&value) : value_(move(value)) {}
         Node Build()
         {
             return move(value_);
@@ -107,7 +107,7 @@ namespace json
     class Builder : public BaseContext<Builder>
     {
     public:
-        ReadyToBuild Value(Node::Value value)
+        ReadyNodeContext Value(Node::Value value)
         {
             return value;
         }
