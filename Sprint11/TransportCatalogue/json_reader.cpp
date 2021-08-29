@@ -1,5 +1,5 @@
 #include "json_reader.h"
-
+#include "json_builder.h"
 /*
  * Здесь можно разместить код наполнения транспортного справочника данными из JSON,
  * а также код обработки запросов к базе и формирование массива ответов в формате JSON
@@ -9,7 +9,6 @@ namespace json_reader
 {
     using namespace std;
     using namespace transport_catalogue;
-    //    using namespace map_renderer;
 
     namespace
     {
@@ -149,47 +148,52 @@ namespace json_reader
 
     json::Node MakeBusStatsNode(const std::optional<domain::BusData> &bus_data, int request_id)
     {
-        json::Dict result;
-        result["request_id"] = json::Node(request_id);
+
+        using namespace json;
+        auto result_builder = Builder{}.StartDict().Key("request_id").Value(request_id);
         if (bus_data)
         {
-            result["curvature"] = json::Node(bus_data->curvature);
-            result["route_length"] = json::Node(bus_data->route_length);
-            result["unique_stop_count"] = json::Node(bus_data->unique_stops);
-            result["stop_count"] = json::Node(bus_data->total_stops);
+            return result_builder
+                .Key("curvature")
+                .Value(bus_data->curvature)
+
+                .Key("route_length")
+                .Value(bus_data->route_length)
+
+                .Key("unique_stop_count")
+                .Value(bus_data->unique_stops)
+
+                .Key("stop_count")
+                .Value(bus_data->total_stops)
+
+                .EndDict()
+                .Build();
         }
         else
         {
-            result["error_message"] = json::Node("not found"s);
+            return result_builder
+                .Key("error_message")
+                .Value("not found"s)
+                .EndDict()
+                .Build();
         }
-        return result;
     }
 
     json::Node MakeStopStatsNode(const std::optional<domain::StopData> &stop_data, int request_id)
     {
-        json::Dict result;
-        result["request_id"] = json::Node(request_id);
-        if (stop_data)
-        {
-            auto bus_node_array = json::Array{};
-            if (!stop_data->buses.empty())
-            {
-                for (auto &bus_number : stop_data->buses)
-                {
-                    bus_node_array.push_back(json::Node(bus_number));
-                }
-                result["buses"] = bus_node_array;
-            }
-            else
-            {
-                result["buses"] = json::Array{};
-            }
-        }
-        else
-        {
-            result["error_message"] = "not found"s;
-        }
-        return result;
+
+        auto result_builder = json::Builder()
+                                  .StartDict()
+                                  .Key("request_id")
+                                  .Value(request_id);
+        if (!stop_data)
+            return result_builder.Key("error_message").Value("not found"s).EndDict().Build();
+
+        auto array_node_builder = json::Builder{}.StartArray();
+        for (auto &bus_number : stop_data->buses)
+            array_node_builder.Value(bus_number);
+
+        return result_builder.Key("buses").Value(array_node_builder.EndArray().Build().AsArray()).EndDict().Build();
     }
 
     json::Node MakeMapNode(svg::Document rendered_map, int request_id)
@@ -197,10 +201,18 @@ namespace json_reader
 
         ostringstream map_output;
         rendered_map.Render(map_output);
-        json::Dict result_dict;
-        result_dict["request_id"] = json::Node(request_id);
-        result_dict["map"] = json::Node(map_output.str());
-        return json::Node(result_dict);
+
+        return json::Builder{}
+            .StartDict()
+
+            .Key("request_id")
+            .Value(request_id)
+
+            .Key("map")
+            .Value(map_output.str())
+
+            .EndDict()
+            .Build();
     }
 
 }

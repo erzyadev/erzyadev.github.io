@@ -11,7 +11,7 @@ using namespace std;
 int main()
 {
 #ifdef MY_DEBUG
-    ifstream in("../simple_map.json");
+    ifstream in("../input1.json");
 #else
     auto &in = cin;
 #endif
