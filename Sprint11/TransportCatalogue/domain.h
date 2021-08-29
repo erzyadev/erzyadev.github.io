@@ -28,7 +28,7 @@ namespace domain
     struct Bus
     {
         Bus(std::string new_bus_number, std::vector<std::string> new_stops = {}, bool new_isLoop = false)
-            : bus_number{new_bus_number}, stops{new_stops}, isLoop{new_isLoop} {}
+            : bus_number{move(new_bus_number)}, stops{move(new_stops)}, isLoop{new_isLoop} {}
 
         std::string bus_number;
         std::vector<std::string> stops;

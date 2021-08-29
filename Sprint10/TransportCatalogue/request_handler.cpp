@@ -27,7 +27,7 @@ svg::Document RequestHandler::RenderMap() const
     return renderer_.Render(db_);
 }
 
-json::Document ProcessStatRequests(const RequestHandler &handler, const std::vector<json_reader::StatRequest> &requests)
+json::Document request_handler::ProcessStatRequests(const RequestHandler &handler, const std::vector<json_reader::StatRequest> &requests)
 {
     auto responses = json::Array{};
     for (auto &request : requests)

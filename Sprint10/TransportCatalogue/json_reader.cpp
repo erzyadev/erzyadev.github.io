@@ -9,7 +9,7 @@ namespace json_reader
 {
     using namespace std;
     using namespace transport_catalogue;
-    using namespace map_renderer;
+    //    using namespace map_renderer;
 
     namespace
     {
@@ -46,11 +46,11 @@ namespace json_reader
         }
     }
 
-    RenderSettings ReadRenderSetting(json::Node render_settings_node)
+    map_renderer::RenderSettings ReadRenderSetting(json::Node render_settings_node)
     {
 
         auto as_map = render_settings_node.AsMap();
-        RenderSettings settings;
+        map_renderer::RenderSettings settings;
         settings.width = as_map.at("width").AsDouble();
         settings.height = as_map.at("height").AsDouble();
 
