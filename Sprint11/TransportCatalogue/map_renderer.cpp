@@ -1,11 +1,5 @@
 #include "map_renderer.h"
 
-/*
- * В этом файле вы можете разместить код, отвечающий за визуализацию карты маршрутов в формате SVG.
- * Визуализация маршртутов вам понадобится во второй части итогового проекта.
- * Пока можете оставить файл пустым.
- */
-
 svg::Point map_renderer::SphereProjector::operator()(geo::Coordinates coords) const
 {
     return {(coords.lng - min_lon_) * zoom_coeff_ + padding_,
@@ -32,139 +26,237 @@ namespace
     }
 }
 
+namespace
+{
+    template <typename Container, typename PtrCmp>
+    std::vector<const typename Container::value_type *> GetSortedElementPointers(const Container &container, PtrCmp ptr_cmp)
+    {
+        std::vector<const typename Container::value_type *> ptrs = populate_ptrs(container.begin(), container.end());
+        std::sort(ptrs.begin(), ptrs.end(), ptr_cmp);
+        return ptrs;
+    }
+
+    void DrawStopCircle(svg::Document &rendered_map, svg::Point position, const map_renderer::RenderSettings &settings)
+    {
+        svg::Circle stop_circle;
+        stop_circle.SetCenter(position);
+        stop_circle.SetRadius(settings.stop_radius);
+        stop_circle.SetFillColor("white");
+        rendered_map.Add(stop_circle);
+    }
+
+    void DrawStopName(svg::Document &rendered_map, const std::string &stop_name, svg::Point position, const map_renderer::RenderSettings &settings)
+    {
+        using namespace svg;
+        svg::Text stop_name_svg;
+        stop_name_svg.SetPosition(position);
+        stop_name_svg.SetOffset(settings.stop_label_offset);
+        stop_name_svg.SetFontSize(settings.stop_label_font_size);
+        stop_name_svg.SetFontFamily("Verdana");
+        stop_name_svg.SetData(stop_name);
+
+        svg::Text stop_name_underlayer{stop_name_svg};
+        stop_name_underlayer.SetFillColor(settings.underlayer_color);
+        stop_name_underlayer.SetStrokeColor(settings.underlayer_color);
+        stop_name_underlayer.SetStrokeWidth(settings.underlayer_width);
+        stop_name_underlayer.SetStrokeLineCap(StrokeLineCap::ROUND);
+        stop_name_underlayer.SetStrokeLineJoin(StrokeLineJoin::ROUND);
+        rendered_map.Add(stop_name_underlayer);
+
+        stop_name_svg.SetFillColor("black");
+        rendered_map.Add(stop_name_svg);
+    }
+    svg::Text SetUpRouteName(const std::string &bus_number, svg::Point first_stop_position, const svg::Color &route_color,
+                             const map_renderer::RenderSettings &settings)
+    {
+        svg::Text route_name;
+        route_name.SetData(bus_number);
+        route_name.SetPosition(first_stop_position);
+        route_name.SetOffset(settings.bus_label_offset);
+        route_name.SetFontSize(settings.bus_label_font_size);
+        route_name.SetFontFamily("Verdana");
+        route_name.SetFontWeight("bold");
+        route_name.SetFillColor(route_color);
+        return route_name;
+    }
+    svg::Text SetUpRouteNameUnderlayer(const svg::Text &route_name, const map_renderer::RenderSettings &settings)
+    {
+        svg::Text route_name_underlayer = route_name;
+        route_name_underlayer.SetFillColor(settings.underlayer_color);
+        route_name_underlayer.SetStrokeColor(settings.underlayer_color);
+        route_name_underlayer.SetStrokeWidth(settings.underlayer_width);
+        route_name_underlayer.SetStrokeLineCap(svg::StrokeLineCap::ROUND);
+        route_name_underlayer.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
+        return route_name_underlayer;
+    }
+
+    std::pair<svg::Text, svg::Text> RenderRouteName(svg::Document &rendered_map, const std::string &bus_number, svg::Point first_stop_position, const svg::Color &route_color,
+                                                    const map_renderer::RenderSettings &settings)
+    {
+        svg::Text route_name = SetUpRouteName(bus_number, first_stop_position,
+                                              route_color, settings);
+        svg::Text route_name_underlayer = SetUpRouteNameUnderlayer(route_name, settings);
+        rendered_map.Add(route_name_underlayer);
+        rendered_map.Add(route_name);
+        return {route_name, route_name_underlayer};
+    }
+
+    void RenderRouteNameLastStop(svg::Document &rendered_map, const svg::Text &route_name,
+                                 const svg::Text &route_name_underlayer, svg::Point position)
+    {
+        svg::Text last_stop_underlayer{route_name_underlayer};
+        last_stop_underlayer.SetPosition(position);
+        rendered_map.Add(last_stop_underlayer);
+        svg::Text last_stop{route_name};
+        last_stop.SetPosition(position);
+        rendered_map.Add(last_stop);
+    }
+
+    template <typename CoordMapper>
+    void DrawRoute(svg::Document &rendered_map,
+                   const domain::Bus &bus, const CoordMapper &coordinate_to_position, svg::Color route_color,
+                   const map_renderer::RenderSettings &settings)
+    {
+        using namespace svg;
+        Polyline route;
+        for (auto &stop : bus.stops)
+        {
+            route.AddPoint(coordinate_to_position(stop));
+        }
+        if (!bus.isLoop)
+        {
+            for (auto reverse_stop_it = next(bus.stops.rbegin());
+                 reverse_stop_it != bus.stops.rend(); ++reverse_stop_it)
+            {
+                route.AddPoint(coordinate_to_position(*reverse_stop_it));
+            }
+        }
+        //svg::Color current_route_color = settings_.color_palette[color_counter];
+        route.SetStrokeColor(route_color);
+        route.SetFillColor(svg::NoneColor);
+        route.SetStrokeWidth(settings.line_width);
+        route.SetStrokeLineCap(StrokeLineCap::ROUND);
+        route.SetStrokeLineJoin(StrokeLineJoin::ROUND);
+        rendered_map.Add(route);
+    }
+
+    map_renderer::SphereProjector MakeProjector(const transport_catalogue::TransportCatalogue &catalogue,
+                                                const map_renderer::RenderSettings &settings)
+    {
+        auto stop_coordinates = catalogue.GetNonemptyStopCoordinates();
+        return {stop_coordinates.begin(), stop_coordinates.end(),
+                settings.width, settings.height, settings.padding};
+    }
+
+    template <typename CoordMapper>
+    void DrawRoutes(svg::Document &rendered_map,
+                    class std::vector<const domain::Bus *> bus_ptrs, CoordMapper coordinate_to_position,
+                    const map_renderer::RenderSettings &settings)
+    {
+        size_t palette_size = settings.color_palette.size();
+        size_t color_counter = 0;
+        for (auto bus_ptr : bus_ptrs)
+        {
+            auto &bus = *bus_ptr;
+            if (!bus.stops.empty())
+            {
+                svg::Color current_route_color = settings.color_palette[color_counter];
+
+                DrawRoute(
+                    rendered_map,
+                    bus,
+                    coordinate_to_position,
+                    current_route_color, settings);
+                color_counter = (color_counter + 1) % palette_size;
+            }
+        }
+    }
+
+    template <typename CoordMapper>
+    void DrawRouteNames(svg::Document &rendered_map, class std::vector<const domain::Bus *> bus_ptrs, CoordMapper coordinate_to_position,
+                        const map_renderer::RenderSettings &settings)
+    {
+        size_t palette_size = settings.color_palette.size();
+        size_t color_counter = 0;
+        for (auto bus_ptr : bus_ptrs)
+        {
+            auto &bus = *bus_ptr;
+            if (!bus.stops.empty())
+            {
+
+                svg::Color current_route_color = settings.color_palette[color_counter];
+
+                const auto &[route_name, route_name_underlayer] = RenderRouteName(rendered_map, bus.bus_number,
+                                                                                  coordinate_to_position(bus.stops.front()),
+                                                                                  current_route_color, settings);
+                if (!bus.isLoop && bus.stops.back() != bus.stops.front())
+                {
+
+                    RenderRouteNameLastStop(rendered_map, route_name, route_name_underlayer,
+                                            coordinate_to_position(bus.stops.back()));
+                }
+
+                color_counter = (color_counter + 1) % palette_size;
+            }
+        }
+    }
+
+    void DrawStopCircles(svg::Document &rendered_map,
+                         std::vector<const domain::Stop *> stop_ptrs,
+                         const map_renderer::SphereProjector &projector,
+                         const map_renderer::RenderSettings &settings)
+    {
+
+        for (auto stop_ptr : stop_ptrs)
+        {
+            if (!stop_ptr->buses.empty())
+            {
+                DrawStopCircle(rendered_map, projector(stop_ptr->coordinates), settings);
+            }
+        }
+    }
+
+    void DrawStopNames(svg::Document &rendered_map,
+                       std::vector<const domain::Stop *> stop_ptrs,
+                       const map_renderer::SphereProjector &projector,
+                       const map_renderer::RenderSettings &settings)
+    {
+        for (auto stop_ptr : stop_ptrs)
+        {
+            if (!stop_ptr->buses.empty())
+            {
+                DrawStopName(rendered_map, stop_ptr->stop_name, projector(stop_ptr->coordinates), settings);
+            }
+        }
+    }
+}
+
 svg::Document map_renderer::MapRenderer::Render(const transport_catalogue::TransportCatalogue &catalogue) const
 {
-    //throw std::runtime_error{"Not implemented"};
-    //return svg::Document{};
+
     using namespace svg;
-    //auto map_data = catalogue.GetMapData();
+
     Document rendered_map;
-    // std::sort(map_data.begin(), map_data.end(), [](auto &bus1, auto &bus2)
-    //           { return bus1.bus_number < bus2.bus_number; });
 
-    auto stop_coordinates = catalogue.GetNonemptyStopCoordinates();
-    SphereProjector projector{stop_coordinates.begin(), stop_coordinates.end(),
-                              settings_.width, settings_.height, settings_.padding};
+    SphereProjector projector = MakeProjector(catalogue, settings_);
 
-    int palette_size = settings_.color_palette.size();
     auto &buses = catalogue.GetBuses();
+    auto bus_ptrs = GetSortedElementPointers(buses, [](const domain::Bus *x, const domain::Bus *y)
+                                             { return x->bus_number < y->bus_number; });
+
+    auto coordinate_to_position = [&projector, &catalogue](const std::string &stop)
+    { return projector(catalogue.GetStopCoordinates(stop)); };
+
+    DrawRoutes(rendered_map, bus_ptrs, coordinate_to_position,
+               settings_);
+    DrawRouteNames(rendered_map, bus_ptrs, coordinate_to_position, settings_);
+
     auto &stops = catalogue.GetStops();
-    auto bus_ptrs = populate_ptrs(buses.cbegin(), buses.cend());
-    std::sort(bus_ptrs.begin(), bus_ptrs.end(),
-              [](const domain::Bus *x, const domain::Bus *y)
-              { return x->bus_number < y->bus_number; });
+    auto stop_ptrs = GetSortedElementPointers(stops, [](const domain::Stop *x, const domain::Stop *y)
+                                              { return x->stop_name < y->stop_name; });
 
-    int color_counter = 0;
-    for (auto bus_ptr : bus_ptrs)
-    {
-        auto &bus = *bus_ptr;
-        if (!bus.stops.empty())
-        {
-            Polyline route;
-            for (auto &stop : bus.stops)
-            {
-                route.AddPoint(projector(catalogue.GetStopCoordinates(stop)));
-            }
-            if (!bus.isLoop)
-            {
-                for (auto reverse_stop_it = next(bus.stops.rbegin());
-                     reverse_stop_it != bus.stops.rend(); ++reverse_stop_it)
-                {
-                    route.AddPoint(projector(catalogue.GetStopCoordinates(*reverse_stop_it)));
-                }
-            }
-            svg::Color current_route_color = settings_.color_palette[color_counter];
-            route.SetStrokeColor(current_route_color);
-            route.SetFillColor(svg::NoneColor);
-            route.SetStrokeWidth(settings_.line_width);
-            route.SetStrokeLineCap(StrokeLineCap::ROUND);
-            route.SetStrokeLineJoin(StrokeLineJoin::ROUND);
-            rendered_map.Add(route);
-            color_counter = (color_counter + 1) % palette_size;
-        }
-    }
+    DrawStopCircles(rendered_map, stop_ptrs, projector, settings_);
 
-    color_counter = 0;
-    for (auto bus_ptr : bus_ptrs)
-    {
-        auto &bus = *bus_ptr;
-        if (!bus.stops.empty())
-        {
-            //Draw stop names
-            svg::Color current_route_color = settings_.color_palette[color_counter];
-
-            Text route_name;
-            route_name.SetData(bus.bus_number);
-            route_name.SetPosition(projector(catalogue.GetStopCoordinates(bus.stops.front())));
-            route_name.SetOffset(settings_.bus_label_offset);
-            route_name.SetFontSize(settings_.bus_label_font_size);
-            route_name.SetFontFamily("Verdana");
-            route_name.SetFontWeight("bold");
-            route_name.SetFillColor(current_route_color);
-
-            Text route_name_underlayer = route_name;
-            route_name_underlayer.SetFillColor(settings_.underlayer_color);
-            route_name_underlayer.SetStrokeColor(settings_.underlayer_color);
-            route_name_underlayer.SetStrokeWidth(settings_.underlayer_width);
-            route_name_underlayer.SetStrokeLineCap(svg::StrokeLineCap::ROUND);
-            route_name_underlayer.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
-            rendered_map.Add(route_name_underlayer);
-            rendered_map.Add(route_name);
-            if (!bus.isLoop && bus.stops.back() != bus.stops.front())
-            {
-                Text last_stop_underlayer{route_name_underlayer};
-                last_stop_underlayer.SetPosition(projector(catalogue.GetStopCoordinates(bus.stops.back())));
-                rendered_map.Add(last_stop_underlayer);
-                Text last_stop{route_name};
-                last_stop.SetPosition(projector(catalogue.GetStopCoordinates(bus.stops.back())));
-                rendered_map.Add(last_stop);
-            }
-
-            color_counter = (color_counter + 1) % palette_size;
-        }
-    }
-
-    auto stop_ptrs = populate_ptrs(stops.begin(), stops.end());
-    std::sort(stop_ptrs.begin(), stop_ptrs.end(), [](const domain::Stop *x, const domain::Stop *y)
-              { return x->stop_name < y->stop_name; });
-    for (auto stop_ptr : stop_ptrs)
-    {
-        if (!stop_ptr->buses.empty())
-        {
-            svg::Circle stop_circle;
-            stop_circle.SetCenter(projector(stop_ptr->coordinates));
-            stop_circle.SetRadius(settings_.stop_radius);
-            stop_circle.SetFillColor("white");
-            rendered_map.Add(stop_circle);
-        }
-    }
-
-    for (auto stop_ptr : stop_ptrs)
-    {
-        if (!stop_ptr->buses.empty())
-        {
-            Text stop_name;
-            stop_name.SetPosition(projector(stop_ptr->coordinates));
-            stop_name.SetOffset(settings_.stop_label_offset);
-            stop_name.SetFontSize(settings_.stop_label_font_size);
-            stop_name.SetFontFamily("Verdana");
-            stop_name.SetData(stop_ptr->stop_name);
-
-            Text stop_name_underlayer{stop_name};
-            stop_name_underlayer.SetFillColor(settings_.underlayer_color);
-            stop_name_underlayer.SetStrokeColor(settings_.underlayer_color);
-            stop_name_underlayer.SetStrokeWidth(settings_.underlayer_width);
-            stop_name_underlayer.SetStrokeLineCap(StrokeLineCap::ROUND);
-            stop_name_underlayer.SetStrokeLineJoin(StrokeLineJoin::ROUND);
-            rendered_map.Add(stop_name_underlayer);
-
-            stop_name.SetFillColor("black");
-            rendered_map.Add(stop_name);
-        }
-    }
-
-    //Draw stop circles
-    //Draw stop names
-    //Something else
+    DrawStopNames(rendered_map, stop_ptrs, projector, settings_);
     return rendered_map;
 }
