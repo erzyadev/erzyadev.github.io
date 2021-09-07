@@ -26,8 +26,8 @@ namespace json
         using variant::variant;
         using Value = variant;
 
-        template <typename... Args>
-        Node(Args &&...args) : variant(std::forward<Args>(args)...) {}
+        // template <typename... Args>
+        // Node(Args &&...args) : variant(std::forward<Args>(args)...) {}
 
         bool IsInt() const
         {

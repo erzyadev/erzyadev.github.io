@@ -20,11 +20,7 @@
 
 namespace domain
 {
-    struct DistanceTo
-    {
-        std::string to_stop;
-        int distance;
-    };
+
     struct Bus
     {
         Bus(std::string new_bus_number, std::vector<std::string> new_stops = {}, bool new_isLoop = false)

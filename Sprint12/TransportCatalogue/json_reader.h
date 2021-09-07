@@ -56,8 +56,6 @@ namespace json_reader
 
     geo::Coordinates ReadCoordinates(std::string &input);
 
-    domain::DistanceTo ReadDistanceToStop(std::string &query);
-
     AddQueries ParseCreation(const std::vector<std::string> &inputs);
 
     int ReadNumber(std::istream &input);

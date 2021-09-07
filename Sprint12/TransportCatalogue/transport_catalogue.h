@@ -43,7 +43,7 @@ namespace transport_catalogue
         }
         double GetGeographicalDistance(std::string from, std::string to) const;
         double GetDistanceStopsLoop(std::string from, std::string to) const;
-        double GetDistanceStopsReturn(std::string from, std::string to) const;
+        //double GetDistanceStopsReturn(std::string from, std::string to) const;
 
     private:
         std::deque<Bus> buses_;
@@ -57,6 +57,8 @@ namespace transport_catalogue
 
         BusData CalculateBusData(const Bus &bus) const;
         StopData CalculateStopData(const Stop &stop_data) const;
+
+        void FillDistances();
     };
 
     std::ostream &operator<<(std::ostream &out, const BusStats &busInfo);

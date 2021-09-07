@@ -34,7 +34,7 @@ namespace json
     {
     public:
         ArrayContext(PrevContext &caller) : prev_context_{caller} {};
-        ArrayContext &Value(Node::Value value)
+        ArrayContext &Value(Node value)
         {
             values_.emplace_back(move(value));
             return *this;
@@ -70,7 +70,7 @@ namespace json
         public:
             KeyContext(DictContext &current_dict, std::string key)
                 : current_dict_(current_dict), key_{std::move(key)} {}
-            DictContext &Value(Node::Value value)
+            DictContext &Value(Node value)
             {
                 current_dict_.dict_.emplace(move(key_), move(value));
                 return current_dict_;
@@ -94,20 +94,20 @@ namespace json
     {
 
     public:
-        ReadyNodeContext(Node::Value &&value) : value_(move(value)) {}
+        ReadyNodeContext(Node &&value) : value_(move(value)) {}
         Node Build()
         {
             return move(value_);
         }
 
     private:
-        Node::Value value_;
+        Node value_;
     };
 
     class Builder : public BaseContext<Builder>
     {
     public:
-        ReadyNodeContext Value(Node::Value value)
+        ReadyNodeContext Value(Node value)
         {
             return value;
         }

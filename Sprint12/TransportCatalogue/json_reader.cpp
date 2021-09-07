@@ -99,6 +99,9 @@ namespace json_reader
                 new_bus.stops.push_back(stop_node.AsString());
             }
             new_bus.isLoop = bus_map.at("is_roundtrip").AsBool();
+            if (!new_bus.isLoop && !new_bus.stops.empty())
+                for (auto reverse_it = next(bus_map.at("stops").AsArray().rbegin()); reverse_it != bus_map.at("stops").AsArray().rend(); ++reverse_it)
+                    new_bus.stops.push_back(reverse_it->AsString());
             return new_bus;
         }
         domain::Stop ReadStopFromJsonMap(const json::Dict &stop_map)

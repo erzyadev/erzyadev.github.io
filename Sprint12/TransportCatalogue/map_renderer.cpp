@@ -123,14 +123,14 @@ namespace
         {
             route.AddPoint(coordinate_to_position(stop));
         }
-        if (!bus.isLoop)
-        {
-            for (auto reverse_stop_it = next(bus.stops.rbegin());
-                 reverse_stop_it != bus.stops.rend(); ++reverse_stop_it)
-            {
-                route.AddPoint(coordinate_to_position(*reverse_stop_it));
-            }
-        }
+        // if (!bus.isLoop)
+        // {
+        //     for (auto reverse_stop_it = next(bus.stops.rbegin());
+        //          reverse_stop_it != bus.stops.rend(); ++reverse_stop_it)
+        //     {
+        //         route.AddPoint(coordinate_to_position(*reverse_stop_it));
+        //     }
+        // }
         //svg::Color current_route_color = settings_.color_palette[color_counter];
         route.SetStrokeColor(route_color);
         route.SetFillColor(svg::NoneColor);
@@ -189,11 +189,11 @@ namespace
                 const auto &[route_name, route_name_underlayer] = RenderRouteName(rendered_map, bus.bus_number,
                                                                                   coordinate_to_position(bus.stops.front()),
                                                                                   current_route_color, settings);
-                if (!bus.isLoop && bus.stops.back() != bus.stops.front())
+                if (!bus.isLoop && bus.stops[bus.stops.size() / 2] != bus.stops.front())
                 {
 
                     RenderRouteNameLastStop(rendered_map, route_name, route_name_underlayer,
-                                            coordinate_to_position(bus.stops.back()));
+                                            coordinate_to_position(bus.stops[bus.stops.size() / 2]));
                 }
 
                 color_counter = (color_counter + 1) % palette_size;

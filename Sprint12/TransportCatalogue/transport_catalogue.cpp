@@ -19,7 +19,7 @@ namespace transport_catalogue
                 stop_index_.at(stop)->buses.insert(bus.bus_number);
             }
         }
-
+        FillDistances();
         for (auto &bus : buses_)
         {
             bus_statistics_[bus.bus_number] = CalculateBusData(bus);
@@ -39,43 +39,45 @@ namespace transport_catalogue
     }
     double TransportCatalogue::GetDistanceStopsLoop(std::string from, std::string to) const
     {
-        Stop *from_ptr = stop_index_.at(from);
-        auto to_iter = from_ptr->distances.find(to);
-        if (to_iter != from_ptr->distances.end())
-        {
-            return to_iter->second;
-        }
-        else
-        {
-            return stop_index_.at(to)->distances.at(from);
-        }
+        // Stop *from_ptr = stop_index_.at(from);
+        // auto to_iter = from_ptr->distances.find(to);
+        // if (to_iter != from_ptr->distances.end())
+        // {
+        //     return to_iter->second;
+        // }
+        // else
+        // {
+        //     return stop_index_.at(to)->distances.at(from);
+        // }
+        return stop_index_.at(from)->distances.at(to);
     }
-    double TransportCatalogue::GetDistanceStopsReturn(std::string from, std::string to) const
-    {
-        Stop *from_ptr = stop_index_.at(from);
-        Stop *to_ptr = stop_index_.at(to);
-        auto to_iter = from_ptr->distances.find(to);
-        auto from_iter = to_ptr->distances.find(from);
-        if (to_iter != from_ptr->distances.end())
-        {
-            if (from_iter != to_ptr->distances.end())
-            {
-                return to_iter->second + from_iter->second;
-            }
-            else
-                return 2 * to_iter->second;
-        }
-        else
-        {
-            return 2 * from_iter->second;
-        }
-    }
+    // double TransportCatalogue::GetDistanceStopsReturn(std::string from, std::string to) const
+    // {
+    //     Stop *from_ptr = stop_index_.at(from);
+    //     Stop *to_ptr = stop_index_.at(to);
+    //     auto to_iter = from_ptr->distances.find(to);
+    //     auto from_iter = to_ptr->distances.find(from);
+    //     if (to_iter != from_ptr->distances.end())
+    //     {
+    //         if (from_iter != to_ptr->distances.end())
+    //         {
+    //             return to_iter->second + from_iter->second;
+    //         }
+    //         else
+    //             return 2 * to_iter->second;
+    //     }
+    //     else
+    //     {
+    //         return 2 * from_iter->second;
+    //     }
+    // }
 
     BusData TransportCatalogue::CalculateBusData(const Bus &bus) const
     {
 
         auto bus_data = BusData{};
-        bus_data.total_stops = bus.isLoop ? bus.stops.size() : 2 * bus.stops.size() - 1;
+
+        bus_data.total_stops = bus.stops.size();
         std::unordered_set<std::string> unique_counter;
         for (auto &stop : bus.stops)
         {
@@ -90,25 +92,13 @@ namespace transport_catalogue
         {
             return GetDistanceStopsLoop(from, to);
         };
-        auto distance_between_stops_return = [this](auto &from, auto &to)
-        {
-            return GetDistanceStopsReturn(from, to);
-        };
+
         double distance = std::transform_reduce(bus.stops.begin(), bus.stops.end() - 1,
                                                 bus.stops.begin() + 1, .0, std::plus<>{}, geographical_distance);
 
-        if (bus.isLoop)
-        {
-            bus_data.route_length = std::transform_reduce(bus.stops.begin(), bus.stops.end() - 1,
-                                                          bus.stops.begin() + 1, .0, std::plus<>{}, distance_between_stops_loop);
-            bus_data.curvature = bus_data.route_length / distance;
-        }
-        else
-        {
-            bus_data.route_length = std::transform_reduce(bus.stops.begin(), bus.stops.end() - 1,
-                                                          bus.stops.begin() + 1, .0, std::plus<>{}, distance_between_stops_return);
-            bus_data.curvature = bus_data.route_length / distance / 2;
-        }
+        bus_data.route_length = std::transform_reduce(bus.stops.begin(), bus.stops.end() - 1,
+                                                      bus.stops.begin() + 1, .0, std::plus<>{}, distance_between_stops_loop);
+        bus_data.curvature = bus_data.route_length / distance;
 
         return bus_data;
     }
@@ -182,5 +172,24 @@ namespace transport_catalogue
             }
         }
         return out;
+    }
+    void TransportCatalogue::FillDistances()
+    {
+        for (auto &bus : buses_)
+        {
+            for (auto it1 = bus.stops.begin(), it2 = next(bus.stops.begin()); it2 != bus.stops.end(); ++it1, ++it2)
+            {
+                auto &from_name = *it1;
+                auto &to_name = *it2;
+                Stop *from_ptr = stop_index_.at(from_name);
+                Stop *to_ptr = stop_index_.at(to_name);
+                auto to_iter = from_ptr->distances.find(to_name);
+
+                if (to_iter == from_ptr->distances.end())
+                {
+                    from_ptr->distances[to_name] = to_ptr->distances[from_name];
+                }
+            }
+        }
     }
 }
