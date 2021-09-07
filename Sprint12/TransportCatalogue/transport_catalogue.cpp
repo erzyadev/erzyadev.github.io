@@ -39,38 +39,8 @@ namespace transport_catalogue
     }
     double TransportCatalogue::GetDistanceStopsLoop(std::string from, std::string to) const
     {
-        // Stop *from_ptr = stop_index_.at(from);
-        // auto to_iter = from_ptr->distances.find(to);
-        // if (to_iter != from_ptr->distances.end())
-        // {
-        //     return to_iter->second;
-        // }
-        // else
-        // {
-        //     return stop_index_.at(to)->distances.at(from);
-        // }
         return stop_index_.at(from)->distances.at(to);
     }
-    // double TransportCatalogue::GetDistanceStopsReturn(std::string from, std::string to) const
-    // {
-    //     Stop *from_ptr = stop_index_.at(from);
-    //     Stop *to_ptr = stop_index_.at(to);
-    //     auto to_iter = from_ptr->distances.find(to);
-    //     auto from_iter = to_ptr->distances.find(from);
-    //     if (to_iter != from_ptr->distances.end())
-    //     {
-    //         if (from_iter != to_ptr->distances.end())
-    //         {
-    //             return to_iter->second + from_iter->second;
-    //         }
-    //         else
-    //             return 2 * to_iter->second;
-    //     }
-    //     else
-    //     {
-    //         return 2 * from_iter->second;
-    //     }
-    // }
 
     BusData TransportCatalogue::CalculateBusData(const Bus &bus) const
     {
