@@ -4,20 +4,21 @@ namespace transport_router
 {
     using namespace std;
     using graph::DirectedWeightedGraph, graph::Edge;
-    using EdgeType = Edge<double>;
 
-    graph::DirectedWeightedGraph<double> TransportRouter::BuildGraph()
+    void TransportRouter::InitStopIdIndex()
     {
-
         auto &stops = catalogue_.GetStops();
-        auto &buses = catalogue_.GetBuses();
         for (size_t i = 0; i < stops.size(); ++i)
         {
             stop_to_id_[stops[i].stop_name] = i;
             id_to_stop_[i] = stops[i].stop_name;
         }
+    }
+    graph::DirectedWeightedGraph<double> TransportRouter::BuildGraphInitIndex()
+    {
+        InitStopIdIndex();
         graph::DirectedWeightedGraph<double> stop_graph(catalogue_.GetStops().size());
-        for (auto &bus : buses)
+        for (auto &bus : catalogue_.GetBuses())
         {
             for (auto from_it = bus.stops.begin(); from_it != prev(bus.stops.end()); ++from_it)
             {
@@ -27,10 +28,9 @@ namespace transport_router
                 {
                     distance += catalogue_.GetDistance(*prev(to_it), *to_it);
                     span += 1;
-                    auto &from_name = *from_it;
-                    auto &to_name = *to_it;
-                    size_t from_id = stop_to_id_[from_name];
-                    size_t to_id = stop_to_id_[to_name];
+
+                    size_t from_id = stop_to_id_[*from_it];
+                    size_t to_id = stop_to_id_[*to_it];
                     stop_graph.AddEdge(EdgeType{
                         from_id,
                         to_id,

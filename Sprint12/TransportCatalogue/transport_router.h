@@ -63,7 +63,7 @@ namespace transport_router
     {
     public:
         TransportRouter(const transport_catalogue::TransportCatalogue &catalogue, RoutingSettings settings)
-            : catalogue_{catalogue}, routing_settings_{settings}, stop_graph_{BuildGraph()}, router_(stop_graph_)
+            : catalogue_{catalogue}, routing_settings_{settings}, stop_graph_{BuildGraphInitIndex()}, router_(stop_graph_)
         {
         }
 
@@ -72,9 +72,11 @@ namespace transport_router
     private:
         using RouterType = graph::Router<double>;
         using GraphType = graph::DirectedWeightedGraph<double>;
+        using EdgeType = graph::Edge<double>;
+
         const transport_catalogue::TransportCatalogue &catalogue_;
         RoutingSettings routing_settings_;
-        graph::DirectedWeightedGraph<double> BuildGraph();
+        graph::DirectedWeightedGraph<double> BuildGraphInitIndex();
         double GetTravelTime(double distance)
         {
             return distance / routing_settings_.bus_velocity;
@@ -90,5 +92,7 @@ namespace transport_router
             size_t to_id = stop_to_id_.at(to);
             return router_.BuildRoute(from_id, to_id);
         }
+
+        void InitStopIdIndex();
     };
 }
