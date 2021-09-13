@@ -83,9 +83,9 @@ namespace json_reader
     transport_router::RoutingSettings ReadRoutingSettings(json::Node routing_settings_node)
     {
         auto as_map = routing_settings_node.AsMap();
-        transport_router::RoutingSettings routing_settings;
-        routing_settings.bus_wait_time = as_map.at("bus_wait_time").AsInt();
-        routing_settings.bus_velocity = as_map.at("bus_velocity").AsDouble();
+        constexpr static double KMH_TO_METERSPERMINUTE_MULTIPLIER = 1000.0 / 60.0;
+        transport_router::RoutingSettings routing_settings{as_map.at("bus_wait_time").AsInt(),
+                                                           as_map.at("bus_velocity").AsDouble() * KMH_TO_METERSPERMINUTE_MULTIPLIER};
         return routing_settings;
     }
 
@@ -147,7 +147,84 @@ namespace json_reader
                 return json_reader::MakeMapNode(handler.RenderMap(), id);
             }
         };
+        json::Node MakeRouteItemNode(const transport_router::WaitItem &wait_item)
+        {
+            return json::Builder{}
+                .StartDict()
+                .Key("type"s)
+                .Value("Wait"s)
+                .Key("stop_name"s)
+                .Value(wait_item.stop_name)
+                .Key("time"s)
+                .Value(static_cast<int>(wait_item.time))
+                .EndDict()
+                .Build();
+        }
+        json::Node MakeRouteItemNode(const transport_router::RideItem &ride_item)
+        {
+            return json::Builder{}
+                .StartDict()
+                .Key("type"s)
+                .Value("Bus"s)
+                .Key("bus"s)
+                .Value(ride_item.bus_number)
+                .Key("span_count"s)
+                .Value(static_cast<int>(ride_item.span_count))
+                .Key("time"s)
+                .Value(ride_item.time)
+                .EndDict()
+                .Build();
+        }
 
+        struct RouteToJsonVisitor : transport_router::RouteItemVisitor
+        {
+
+            void Visit(transport_router::WaitItem &wait_item) override
+            {
+                route_json.push_back(MakeRouteItemNode(wait_item));
+            }
+
+            void Visit(transport_router::RideItem &ride_item) override
+            {
+                route_json.push_back(MakeRouteItemNode(ride_item));
+            }
+
+            json::Array route_json;
+            json::Array BuildRouteJson(const std::vector<unique_ptr<transport_router::RouteItem>> &route_item_ptrs)
+            {
+                for (auto &item_ptr : route_item_ptrs)
+                    item_ptr->Accept(*this);
+                return move(route_json);
+            }
+        };
+
+        json::Node MakeRouteNode(const optional<transport_router::Route> &route, int request_id)
+        {
+            using namespace transport_router;
+            if (!route)
+                return json::Builder{}
+                    .StartDict()
+                    .Key("request_id"s)
+                    .Value(request_id)
+                    .Key("error_message"s)
+                    .Value("not found"s)
+                    .EndDict()
+                    .Build();
+
+            return json::Builder{}
+                .StartDict()
+                .Key("request_id")
+                .Value(request_id)
+
+                .Key("total_time")
+                .Value(route->total_time)
+
+                .Key("items")
+                .Value(RouteToJsonVisitor{}.BuildRouteJson(route->items))
+
+                .EndDict()
+                .Build();
+        }
         struct RouteRequest : public StatRequest
         {
             RouteRequest(int id, std::string from, std::string to) : StatRequest{id}, from(move(from)), to(move(to)) {}
@@ -156,7 +233,7 @@ namespace json_reader
 
             json::Node GetProcessed(const request_handler::RequestHandler &handler) const override
             {
-                return json::Node{};
+                return json_reader::MakeRouteNode(handler.ConstructRoute(from, to), id);
             }
         };
         unique_ptr<json_reader::StatRequest> ReadStatRequestFromJsonMap(const json::Dict &request_map)
@@ -210,7 +287,7 @@ namespace json_reader
             result.stat_requests.emplace_back(ReadStatRequestFromJsonMap(request.AsMap()));
         }
         result.render_settings = ReadRenderSetting(json_document.GetRoot().AsMap().at("render_settings"));
-        //result.routing_settings = ReadRoutingSettings(json_document.GetRoot().AsMap().at("routing_settings"));
+        result.routing_settings = ReadRoutingSettings(json_document.GetRoot().AsMap().at("routing_settings"));
         return result;
     }
 

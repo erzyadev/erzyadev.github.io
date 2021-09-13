@@ -42,7 +42,7 @@ namespace transport_catalogue
             return stop_index_.at(stop_name)->coordinates;
         }
         double GetGeographicalDistance(std::string from, std::string to) const;
-        double GetDistanceStopsLoop(std::string from, std::string to) const;
+        double GetDistance(std::string from, std::string to) const;
         //double GetDistanceStopsReturn(std::string from, std::string to) const;
 
     private:

@@ -16,7 +16,7 @@ domain::BusStats RequestHandler::GetBusStats(const std::string &bus_name) const
     return db_.GetBusStats(bus_name);
 }
 
-// Возвращает маршруты, проходящие через
+// Возвращает маршруты, проходящие через остановку
 domain::StopStats RequestHandler::GetStopStats(const std::string &stop_name) const
 {
     return db_.GetStopStats(stop_name);

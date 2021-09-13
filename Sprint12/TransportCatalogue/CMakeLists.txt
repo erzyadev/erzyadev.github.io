@@ -6,11 +6,10 @@ file(GLOB SRCFILES
      "*.cpp"
 )
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DMY_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DMY_DEBUG -Wall -Wextra -Wpedantic -Werror")
+
 ADD_EXECUTABLE(catalogue ${SRCFILES})
 set_property(TARGET catalogue PROPERTY CXX_STANDARD 20)
-
-add_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 
 #target_link_libraries( search pthread tbb)

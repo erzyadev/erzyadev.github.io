@@ -11,7 +11,7 @@ using namespace std;
 int main()
 {
 #ifdef MY_DEBUG
-    ifstream in("../input2.json");
+    ifstream in("../input3.json");
 #else
     auto &in = cin;
 #endif
@@ -21,7 +21,8 @@ int main()
     auto render_settings = json_parse_result.render_settings;
     auto responses = json::Array{};
     auto renderer = map_renderer::MapRenderer{render_settings};
-    auto handler = request_handler::RequestHandler(catalogue, renderer);
+    auto router = transport_router::TransportRouter{catalogue, json_parse_result.routing_settings};
+    auto handler = request_handler::RequestHandler(catalogue, renderer, router);
 
     auto result_document = request_handler::ProcessStatRequests(handler,
                                                                 json_parse_result.stat_requests);

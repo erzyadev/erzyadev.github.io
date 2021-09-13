@@ -4,27 +4,63 @@ namespace transport_router
 {
     using namespace std;
     using graph::DirectedWeightedGraph, graph::Edge;
+    using EdgeType = Edge<double>;
+
     graph::DirectedWeightedGraph<double> TransportRouter::BuildGraph()
     {
-        unordered_map<string, size_t> stop_index;
+
         auto &stops = catalogue_.GetStops();
         auto &buses = catalogue_.GetBuses();
-        for (size_t i = 0; i < catalogue_.GetStops().size(); ++i)
+        for (size_t i = 0; i < stops.size(); ++i)
         {
-            stop_index[stops[i].stop_name] = i;
+            stop_to_id_[stops[i].stop_name] = i;
+            id_to_stop_[i] = stops[i].stop_name;
         }
         graph::DirectedWeightedGraph<double> stop_graph(catalogue_.GetStops().size());
         for (auto &bus : buses)
         {
-            for (auto stop_it = bus.stops.begin(); stop_it != bus.stops.end(); ++stop_it)
+            for (auto from_it = bus.stops.begin(); from_it != prev(bus.stops.end()); ++from_it)
             {
-                for (auto to_it = next(stop_it); to_it != bus.stops.end(); ++to_it)
+                double distance = 0;
+                size_t span = 0;
+                for (auto to_it = next(from_it); to_it != bus.stops.end(); ++to_it)
                 {
-                    // stop_graph.AddEdge(Edge<double>{
-                    //     stop_index[*stop_it],stop_index[*to_it], catalogue_.
-                    // })
+                    distance += catalogue_.GetDistance(*prev(to_it), *to_it);
+                    span += 1;
+                    auto &from_name = *from_it;
+                    auto &to_name = *to_it;
+                    size_t from_id = stop_to_id_[from_name];
+                    size_t to_id = stop_to_id_[to_name];
+                    stop_graph.AddEdge(EdgeType{
+                        from_id,
+                        to_id,
+                        static_cast<double>(routing_settings_.bus_wait_time) + distance / routing_settings_.bus_velocity,
+                        span,
+                        bus.bus_number});
                 }
             }
         }
+        return stop_graph;
+    }
+
+    std::optional<Route> TransportRouter::GetRoute(const std::string &from, const std::string &to) const
+    {
+        auto raw_route = GetRawRoute(from, to);
+        if (!raw_route)
+            return {};
+        std::vector<std::unique_ptr<RouteItem>> route_items = {};
+
+        for (auto &edgeId : raw_route->edges)
+        {
+
+            auto &edge = stop_graph_.GetEdge(edgeId);
+            const std::string &from_name = id_to_stop_.at(edge.from);
+            route_items.push_back(std::make_unique<WaitItem>(routing_settings_.bus_wait_time, from_name));
+
+            route_items.push_back(std::make_unique<RideItem>(edge.weight - routing_settings_.bus_wait_time,
+                                                             edge.bus_number,
+                                                             edge.span));
+        }
+        return Route{raw_route->weight, move(route_items)};
     }
 }

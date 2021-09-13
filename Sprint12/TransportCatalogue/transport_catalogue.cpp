@@ -37,7 +37,7 @@ namespace transport_catalogue
         auto to_coord = stop_index_.at(to)->coordinates;
         return geo::ComputeDistance(from_coord, to_coord);
     }
-    double TransportCatalogue::GetDistanceStopsLoop(std::string from, std::string to) const
+    double TransportCatalogue::GetDistance(std::string from, std::string to) const
     {
         return stop_index_.at(from)->distances.at(to);
     }
@@ -60,7 +60,7 @@ namespace transport_catalogue
         };
         auto distance_between_stops_loop = [this](auto &from, auto &to)
         {
-            return GetDistanceStopsLoop(from, to);
+            return GetDistance(from, to);
         };
 
         double distance = std::transform_reduce(bus.stops.begin(), bus.stops.end() - 1,
